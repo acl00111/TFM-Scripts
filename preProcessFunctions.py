@@ -99,7 +99,7 @@ def process_dataset_new(root_input_flair, root_input_t1, root_input_t2, root_out
     root_input_t2 = Path(root_input_t2)
     root_output = Path(root_output)
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    root_output.parent.mkdir(parents=True, exist_ok=True)
 
     flair_slices = sorted(root_input_flair.glob("*.png"))
     t1_slices = sorted(root_input_t1.glob("*.png"))
@@ -126,4 +126,7 @@ def process_dataset_new(root_input_flair, root_input_t1, root_input_t2, root_out
 
         rgb = cv2.merge([flair, t1, t2])
         output_path = root_output / fname.replace("_FLAIR_", "_RGB_")
+       # print(f"Guardando {output_path}")
+       # root_output.mkdir(parents=True, exist_ok=True)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         cv2.imwrite(str(output_path), rgb)
