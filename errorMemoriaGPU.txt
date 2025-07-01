@@ -1,0 +1,27 @@
+(detectron2-env) albacano@servidor-tfg-icai:~/TFM-Scripts$ nvidia-smi
+Tue Jul  1 20:39:29 2025       
++---------------------------------------------------------------------------------------+
+| NVIDIA-SMI 535.230.02             Driver Version: 535.230.02   CUDA Version: 12.2     |
+|-----------------------------------------+----------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |         Memory-Usage | GPU-Util  Compute M. |
+|                                         |                      |               MIG M. |
+|=========================================+======================+======================|
+|   0  NVIDIA GeForce RTX 3080        Off | 00000000:01:00.0 Off |                  N/A |
+|  0%   55C    P8              18W / 340W |   9997MiB / 10240MiB |      0%      Default |
+|                                         |                      |                  N/A |
++-----------------------------------------+----------------------+----------------------+
+                                                                                         
++---------------------------------------------------------------------------------------+
+| Processes:                                                                            |
+|  GPU   GI   CI        PID   Type   Process name                            GPU Memory |
+|        ID   ID                                                             Usage      |
+|=======================================================================================|
+|    0   N/A  N/A      2304      G   /usr/lib/xorg/Xorg                           39MiB |
+|    0   N/A  N/A      4144      G   /usr/bin/gnome-shell                         12MiB |
+|    0   N/A  N/A   1325782      C   /opt/anaconda3/bin/python                  9934MiB |
++---------------------------------------------------------------------------------------+
+
+(detectron2-env) albacano@servidor-tfg-icai:~/TFM-Scripts$ ps -u -p 1325782
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+zinebel  1325782  0.0  8.9 26076936 2933116 ?    Ssl  jun27   4:39 /opt/anaconda3/bin/python -m ipykernel_launcher -f /home/zinebel/.local/share/jupyter/ru

@@ -19,14 +19,21 @@ from detectron2.data import build_detection_test_loader
 
 from inference import inference  # Importamos la función de inferencia desde el archivo inference.py
 
-
-path_dir = "RGBkCV/"
+base_path_dir = '/mnt/Data1/MSLesSeg-Dataset'
+path_dir_model = "/home/albacano/TFM-Scripts/Detectron2_models"
+path_dir_train = base_path_dir + "/outputDivided_trainFLAIR"
+path_dir_val = base_path_dir + "/outputDivided_valFLAIR"
 
 def setup_datasets(nameTrainDataset, nameValDataset):
     # Registra el dataset de entrenamiento
-    register_coco_instances(nameTrainDataset, {}, f"{path_dir}/trainImages/trainMascaras-MSLesSeg.json", f"{path_dir}/trainImages")
+    print("Registrando los datasets de entrenamiento y validación...")
+    if not os.path.exists(f"{path_dir_train}/annotations.json"):
+        raise FileNotFoundError(f"El archivo de anotaciones de entrenamiento no se encuentra en {path_dir_train}/annotations.json")
+    if not os.path.exists(f"{path_dir_val}/annotations.json"):
+        raise FileNotFoundError(f"El archivo de anotaciones de validación no se encuentra en {path_dir_val}/annotations.json")
+    register_coco_instances(nameTrainDataset, {}, f"{path_dir_train}/annotations.json", f"{path_dir_train}")
     # Registra el dataset de validación
-    register_coco_instances(nameValDataset, {}, f"{path_dir}/valImages/valMascaras-MSLesSeg.json", f"{path_dir}/valImages")
+    register_coco_instances(nameValDataset, {}, f"{path_dir_val}/annotations.json", f"{path_dir_val}")
     train_metadata = MetadataCatalog.get(nameTrainDataset)
     train_dataset_dicts = DatasetCatalog.get(nameTrainDataset)
     val_metadata = MetadataCatalog.get(nameValDataset)
@@ -34,8 +41,9 @@ def setup_datasets(nameTrainDataset, nameValDataset):
     return train_dataset_dicts, val_dataset_dicts, train_metadata, val_metadata
 
 def buildConfig():
+    print("Configurando el modelo Detectron2 para entrenamiento...")
     cfg = get_cfg()
-    cfg.OUTPUT_DIR = f"{path_dir}/Detectron2_models/2000epochs"
+    cfg.OUTPUT_DIR = f"{path_dir_model}/2000epochsFLAIR"
     cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"))
     cfg.DATASETS.TRAIN = ("my_dataset_train",)
     cfg.DATASETS.TEST = ()
@@ -53,7 +61,8 @@ def buildConfig():
 
 # Guardamos la configuración en un archivo .yaml
 def save_config(cfg, path_dir):
-    config_yaml_path = f"{path_dir}/Detectron2_models/2000epochs/config.yaml"
+    print("Guardando la configuración del modelo en un archivo YAML...")
+    config_yaml_path = f"{path_dir}/2000epochsFLAIR/config.yaml"
     with open(config_yaml_path, 'w') as file:
         yaml.dump(cfg, file)
 
@@ -77,10 +86,10 @@ def main():
         cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7   # ponemos un umbral para el test, puede modificarse
         predictor = DefaultPredictor(cfg)
 
-        inference(predictor, val_dataset_dicts, val_metadata, f"{path_dir}/valImages/valMascaras-MSLesSeg")
+        inference(predictor, val_dataset_dicts, val_metadata, f"{base_path_dir}/output_maskDivided_valFLAIR")
 
         # evaluamos las métricas del modelo con COCOEvaluator
-        evaluator = COCOEvaluator("my_dataset_val", output_dir=f"{path_dir}/Detectron2_models/evaluacion/2000epochs")
+        evaluator = COCOEvaluator("my_dataset_val", output_dir=f"{path_dir_model}/evaluacion/2000epochs")
         val_loader = build_detection_test_loader(cfg, "my_dataset_val")
         print(inference_on_dataset(predictor.model, val_loader, evaluator))
 
