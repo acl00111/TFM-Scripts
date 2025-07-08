@@ -1,0 +1,35 @@
+(det2) albacano@servidor-tfg-icai:~/TFM-Scripts$ conda env create --file environmentDet.yml
+
+/opt/anaconda3/lib/python3.12/argparse.py:2006: FutureWarning: `remote_definition` is deprecated and will be removed in 25.9. Use `conda env create --file=URL` instead.
+  action(self, namespace, argument_values, option_string)
+Channels:
+ - pytorch
+ - nvidia/label/cuda-11.7.1
+ - defaults
+ - conda-forge
+Platform: linux-64
+Collecting package metadata (repodata.json): done
+Solving environment: done
+
+Downloading and Extracting Packages:
+
+Preparing transaction: done
+Verifying transaction: done
+Executing transaction: done
+Installing pip dependencies: / Ran pip subprocess with arguments:
+['/home/albacano/.conda/envs/detectron2Env/bin/python', '-m', 'pip', 'install', '-U', '-r', '/home/albacano/TFM-Scripts/condaenv.l7i2whs0.requirements.txt', '--exists-action=b']
+Pip subprocess output:
+Collecting git+https://github.com/facebookresearch/detectron2.git (from -r /home/albacano/TFM-Scripts/condaenv.l7i2whs0.requirements.txt (line 1))
+  Cloning https://github.com/facebookresearch/detectron2.git to /tmp/pip-req-build-srvne5_4
+  Resolved https://github.com/facebookresearch/detectron2.git to commit 18f69583391e5040043ca4f4bebd2c60f0ebfde0
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Obtaining file:///home/albacano/TFM-Scripts
+
+Pip subprocess error:
+  Running command git clone --filter=blob:none --quiet https://github.com/facebookresearch/detectron2.git /tmp/pip-req-build-srvne5_4
+ERROR: file:///home/albacano/TFM-Scripts does not appear to be a Python project: neither 'setup.py' nor 'pyproject.toml' found.
+
+failed
+
+CondaEnvException: Pip failed
