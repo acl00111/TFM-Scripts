@@ -38,14 +38,14 @@ def setup_datasets(nameTrainDataset, nameValDataset):
     train_dataset_dicts = DatasetCatalog.get(nameTrainDataset)
     val_metadata = MetadataCatalog.get(nameValDataset)
     val_dataset_dicts = DatasetCatalog.get(nameValDataset)
-    return train_dataset_dicts, val_dataset_dicts, train_metadata, val_metadata
+    
 
-def buildConfig():
+#def buildConfig(trainMetadata):
     print("Configurando el modelo Detectron2 para entrenamiento...")
     cfg = get_cfg()
     cfg.OUTPUT_DIR = f"{path_dir_model}/2000epochsFLAIR"
     cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"))
-    cfg.DATASETS.TRAIN = ("my_dataset_train",)
+    cfg.DATASETS.TRAIN = (nameTrainDataset,)
     cfg.DATASETS.TEST = ()
     cfg.DATALOADER.NUM_WORKERS = 2
     cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml")  # Descarga del modelo troncal Mask R-CNN con ResNet50 y FPN
@@ -56,7 +56,7 @@ def buildConfig():
     cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 256
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1  # Tenemos tan solo la clase Lesion, no se tiene en cuenta el fondo de la imagen
     
-    return cfg
+    return train_dataset_dicts, val_dataset_dicts, train_metadata, val_metadata, cfg
 
 
 # Guardamos la configuración en un archivo .yaml
@@ -73,11 +73,12 @@ def main():
         print("CUDA (GPU) no está disponible. Por favor, verifica tu instalación.")
     else:
         print(f"CUDA disponible: {torch.cuda.get_device_name(0)}")
-        cfg = buildConfig()  # Se construye la configuración del modelo
-        os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
+        train_dataset_dicts, val_dataset_dicts, train_metadata, val_metadata, cfg = setup_datasets("my_dataset_train", "my_dataset_val")  # Se configuran los datasets de entrenamiento y validación
+       # cfg = buildConfig(train_metadata)  # Se construye la configuración del modelo
+       # os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
         trainer = DefaultTrainer(cfg) # Se crea un objeto Trainer con la configuración
         trainer.resume_or_load(resume=False) # cambiar a True para utilizar el último checkpoint y reanudar el entrenamiento
-        train_dataset_dicts, val_dataset_dicts, train_metadata, val_metadata = setup_datasets("my_dataset_train", "my_dataset_val")  # Se configuran los datasets de entrenamiento y validación
+        
         trainer.train()  # Se inicia el entrenamiento del modelo
 
 
