@@ -6,6 +6,8 @@ from detectron2.utils.visualizer import Visualizer, ColorMode
 from matplotlib import pyplot as plt
 
 def inference(predictor, val_dataset_dicts, val_metadata, val_mask_dir):
+    output_dir = "output_images"
+    os.makedirs(output_dir, exist_ok=True)
     for d in random.sample(val_dataset_dicts, 1):  # prueba con una imagen
         file_name = d["file_name"]
         im = cv2.imread(file_name)
@@ -54,4 +56,6 @@ def inference(predictor, val_dataset_dicts, val_metadata, val_mask_dir):
         axs[1].axis("off")
 
         plt.tight_layout()
-        plt.show()
+        output_path = os.path.join(output_dir, f"comparison_{os.path.basename(file_name)}.png")
+        plt.savefig(output_path)
+        print(f"Imagen guardada en: {output_path}")
