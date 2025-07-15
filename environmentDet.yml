@@ -1,4 +1,4 @@
-name: rtdefects
+name: detectron2Env
 channels:
   - pytorch
   - nvidia/label/cuda-11.7.1
