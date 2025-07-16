@@ -5,10 +5,9 @@ import numpy as np
 from detectron2.utils.visualizer import Visualizer, ColorMode
 from matplotlib import pyplot as plt
 
-def inference(predictor, val_dataset_dicts, val_metadata, val_mask_dir):
-    output_dir = "output_images"
+def inference(predictor, val_dataset_dicts, val_metadata, val_mask_dir, output_dir):
     os.makedirs(output_dir, exist_ok=True)
-    for d in random.sample(val_dataset_dicts, 1):  # prueba con una imagen
+    for d in random.sample(val_dataset_dicts, 5):  # prueba con una imagen
         file_name = d["file_name"]
         im = cv2.imread(file_name)
 
@@ -24,7 +23,7 @@ def inference(predictor, val_dataset_dicts, val_metadata, val_mask_dir):
         pred_img = out.get_image()[:, :, ::-1]
 
         # Cargar máscara real
-        image_filename = os.path.basename(file_name)
+        image_filename = os.path.basename("_".join(file_name.split("_")[:3]) + "_MASK_" + "_".join(file_name.split("_")[4:]))
         mask_path = os.path.join(val_mask_dir, image_filename)
         mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
 
