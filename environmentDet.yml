@@ -1,4 +1,4 @@
-name: rtdefects
+name: detectron2Env
 channels:
   - pytorch
   - nvidia/label/cuda-11.7.1
@@ -29,7 +29,7 @@ dependencies:
   # Not available on Conda
   - pip:
     # Detectron2
-    - git+https://github.com/facebookresearch/detectron2.git
+   # - git+https://github.com/facebookresearch/detectron2.git
 
 
     # Remote computing
@@ -38,4 +38,4 @@ dependencies:
     - funcx-endpoint
 
     # Base libraries
-    - -e .[tf,torch]
+   # - -e .[tf,torch]
