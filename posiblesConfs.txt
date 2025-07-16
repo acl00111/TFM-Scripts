@@ -1,0 +1,81 @@
+Modalidad Escaneo:
+    - FLAIR
+    - T1
+    - T2
+    - RGB
+
+Cross k Validation:
+    - none
+    - 5
+
+Rutas Base:
+    - base_path_dir = '/mnt/Data1/MSLesSeg-Dataset'
+    - path_dir_model = "/home/albacano/TFM-Scripts/Detectron2_models"
+    - path_dir_train = base_path_dir + {rutaModalidadTrain}
+    - path_dir_val = base_path_dir + {rutaModalidadVal}
+    - path_dir_output_model = path_dir_model + "/" + {modalidad} + {iterations} + {extraconfs}
+
+Rutas Modalidades Train:
+    - /outputDivided_trainFLAIR
+    - /outputDivided_trainT1
+    - /outputDivided_trainT2
+    - /outputDivided_trainRGB
+
+Rutas Modalidades Validation:
+    - /outputDivided_valFLAIR
+    - /outputDivided_valT1
+    - /outputDivided_valT2
+    - /outputDivided_valRGB
+
+Rutas Modalidades Mascaras:
+    - /output_maskDivided_valFLAIR
+    - /output_maskDivided_valT1
+    - /output_maskDivided_valT2
+    - /output_maskDivided_valRGB
+
+Configuración y Pesos Inicial (Modelos):
+    - mask_rcnn_R_50_C4_1x.yaml
+    - mask_rcnn_R_50_C4_3x.yaml
+    - mask_rcnn_R_101_C4_3x.yaml
+    - mask_rcnn_R_50_DC5_1x.yaml
+    - mask_rcnn_R_50_DC5_3x.yaml
+    - mask_rcnn_R_101_DC5_3x.yaml
+    - mask_rcnn_R_50_FPN_1x.yaml
+    - mask_rcnn_R_50_FPN_3x.yaml
+    - mask_rcnn_R_101_FPN_3x.yaml
+    - mask_rcnn_X_101_32x8d_FPN_3x.yaml
+
+SOLVER.MAX_ITER:
+    - 2000
+    - 5000
+    - 10000
+    - 15000
+    - 20000
+
+INPUT.RANDOM_FLIP (data augmentation):
+    - horizontal
+    - vertical
+    - none
+
+SOLVER.IMS_PER_BATCH:
+    - 2
+    - 8
+    - 16
+
+SOLVER.BASE_LR:
+    - 0.00025 (default)
+
+SOLVER.MOMENTUM:
+    - 0.9
+
+SOLVER.WEIGHT_DECAY:
+    - 0.0001
+
+SOLVER.STEPS (iteration number to decrease learning rate by GAMMA):
+    - (500,)
+    - (1000,)
+    - (2500,)
+    - (5000,)
+
+SOLVER.GAMMA:
+    - 0.1

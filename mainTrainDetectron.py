@@ -5,6 +5,8 @@ from detectron2.utils.logger import setup_logger
 import numpy as np
 import os, json, cv2, random
 import yaml
+import pandas as pd
+import pathlib
 
 from detectron2 import model_zoo
 from detectron2.engine import DefaultPredictor, DefaultTrainer
@@ -53,6 +55,14 @@ def setup_datasets(nameTrainDataset, nameValDataset):
     cfg.SOLVER.BASE_LR = 0.00025
     cfg.SOLVER.MAX_ITER = 2000    # 6000 iteraciones han sido las óptimas para el proyecto
     cfg.SOLVER.STEPS = []
+    cfg.INPUT.MIN_SIZE_TRAIN = (512, 640) # Redimensionamiento de las imágenes de entrenamiento
+    cfg.INPUT.MAX_SIZE_TRAIN = 1333        
+    cfg.INPUT.MIN_SIZE_TEST  = 512
+    cfg.INPUT.MAX_SIZE_TEST  = 1333
+    cfg.INPUT.MIN_SIZE_TRAIN_SAMPLING = "choice" 
+    # Mode for flipping images used in data augmentation during training
+    # choose one of ["horizontal, "vertical", "none"]
+    cfg.INPUT.RANDOM_FLIP = "horizontal"
     cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 256
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1  # Tenemos tan solo la clase Lesion, no se tiene en cuenta el fondo de la imagen
     
@@ -81,6 +91,7 @@ def main():
         
         trainer.train()  # Se inicia el entrenamiento del modelo
 
+        save_config(cfg, path_dir_model)  # Guardamos la configuración del modelo en un archivo YAML
 
         # Inferencia y visualización de resultados
         cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_final.pth")
@@ -92,8 +103,11 @@ def main():
         # evaluamos las métricas del modelo con COCOEvaluator
         evaluator = COCOEvaluator("my_dataset_val", output_dir=f"{path_dir_model}/evaluacion/2000epochs")
         val_loader = build_detection_test_loader(cfg, "my_dataset_val")
-        print(inference_on_dataset(predictor.model, val_loader, evaluator))
-
+        results = inference_on_dataset(predictor.model, val_loader, evaluator)
+        df = pd.json_normalize(results, sep='_')  # Convertir el resultado a un DataFrame de pandas
+        df["configuracion"] = "2000epochsFLAIR"
+        csvPath = pathlib.Path(f"{path_dir_model}/2000epochsFLAIR/evaluacion/2000epochs/results.csv")
+        df.to_csv(csvPath, mode="a", header=not csvPath.exists(), index=False)
         
 
 if __name__ == "__main__":
