@@ -1,7 +1,8 @@
 # evaluators.py
 import numpy as np
 from detectron2.evaluation import DatasetEvaluator
-from detectron2.structures import BitMasks
+from detectron2.structures import BitMasks, Instances
+from detectron2.data.detection_utils import annotations_to_instances
 from detectron2.utils.comm import all_gather, is_main_process
 from scipy.ndimage import label
 
@@ -23,9 +24,22 @@ class SegEvaluator(DatasetEvaluator):
     def process(self, inputs, outputs):
         for inp, out in zip(inputs, outputs):
             h, w = inp["height"], inp["width"]
-            gt_masks = inp["instances"].gt_masks.tensor.cpu().numpy().astype(bool) if len(inp["instances"]) else np.zeros((0, h, w), dtype=bool)
-            pred_masks = out["instances"].pred_masks.cpu().numpy().astype(bool) if "instances" in out and len(out["instances"]) else np.zeros((0, h, w), dtype=bool)
 
+            # --- Reconstruir GT desde anotaciones (formato COCO) ---
+            gt_instances = annotations_to_instances(inp["annotations"], image_shape=(h, w))
+
+            if hasattr(gt_instances, "gt_masks") and len(gt_instances) > 0:
+                gt_masks = gt_instances.gt_masks.tensor.cpu().numpy().astype(bool)
+            else:
+                gt_masks = np.zeros((0, h, w), dtype=bool)
+
+            # --- Obtener máscaras predichas ---
+            if "instances" in out and len(out["instances"]) > 0:
+                pred_masks = out["instances"].pred_masks.cpu().numpy().astype(bool)
+            else:
+                pred_masks = np.zeros((0, h, w), dtype=bool)
+
+            # ---------- Dice (volumétrico por imagen) ------------
             gt_union = gt_masks.any(axis=0)
             pred_union = pred_masks.any(axis=0)
             inter = np.logical_and(gt_union, pred_union).sum()
@@ -34,7 +48,7 @@ class SegEvaluator(DatasetEvaluator):
             self.inter += 2 * inter
             self.union += union
 
-            # Connected components
+            # ---------- Lesion-wise F1 ----------------------------
             gt_cc, n_gt = label(gt_union)
             pred_cc, n_pred = label(pred_union)
 
@@ -42,9 +56,9 @@ class SegEvaluator(DatasetEvaluator):
             matched_pred = set()
 
             for i in range(1, n_pred + 1):
-                pmask = (pred_cc == i)
+                pmask = pred_cc == i
                 for j in range(1, n_gt + 1):
-                    gmask = (gt_cc == j)
+                    gmask = gt_cc == j
                     iou = np.logical_and(pmask, gmask).sum() / np.logical_or(pmask, gmask).sum()
                     if iou >= self.iou_thresh:
                         matched_pred.add(i)
