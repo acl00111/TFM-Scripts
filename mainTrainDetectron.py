@@ -91,16 +91,16 @@ def main():
         trainer = DefaultTrainer(cfg) # Se crea un objeto Trainer con la configuración
         trainer.resume_or_load(resume=False) # cambiar a True para utilizar el último checkpoint y reanudar el entrenamiento
         
-        trainer.train()  # Se inicia el entrenamiento del modelo
+      #  trainer.train()  # Se inicia el entrenamiento del modelo
 
-        save_config(cfg, path_dir_model)  # Guardamos la configuración del modelo en un archivo YAML
+      #  save_config(cfg, path_dir_model)  # Guardamos la configuración del modelo en un archivo YAML
 
         # Inferencia y visualización de resultados
         cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_final.pth")
         cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7   # ponemos un umbral para el test, puede modificarse
         predictor = DefaultPredictor(cfg)
 
-        inference(predictor, val_dataset_dicts, val_metadata, f"{base_path_dir}/output_maskDivided_valFLAIR", f"{path_dir_model}/5000epochsFLAIR101/output_images")
+      #  inference(predictor, val_dataset_dicts, val_metadata, f"{base_path_dir}/output_maskDivided_valFLAIR", f"{path_dir_model}/5000epochsFLAIR101/output_images")
 
         # evaluamos las métricas del modelo con COCOEvaluator
         cocoevaluator = COCOEvaluator("my_dataset_val", output_dir=f"{path_dir_model}/evaluacion/5000epochsFLAIR101")

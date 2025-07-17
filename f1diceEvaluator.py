@@ -24,6 +24,7 @@ class SegEvaluator(DatasetEvaluator):
     def process(self, inputs, outputs):
         for inp, out in zip(inputs, outputs):
             h, w = inp["height"], inp["width"]
+            print(inp)
 
             # --- Reconstruir GT desde anotaciones (formato COCO) ---
             gt_instances = annotations_to_instances(inp["annotations"], image_shape=(h, w))
