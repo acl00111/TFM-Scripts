@@ -104,7 +104,7 @@ def main():
 
         # evaluamos las métricas del modelo con COCOEvaluator
         cocoevaluator = COCOEvaluator("my_dataset_val", output_dir=f"{path_dir_model}/evaluacion/5000epochsFLAIR101")
-        dicef1evaluator = SegEvaluator(iou_thresh=0.5)
+        dicef1evaluator = SegEvaluator("my_dataset_val", iou_thresh=0.5)
         evaluator = DatasetEvaluators([cocoevaluator, dicef1evaluator])
         val_loader = build_detection_test_loader(cfg, "my_dataset_val")
         results = inference_on_dataset(predictor.model, val_loader, evaluator)
