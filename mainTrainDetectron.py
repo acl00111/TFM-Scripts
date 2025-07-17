@@ -47,7 +47,7 @@ def setup_datasets(nameTrainDataset, nameValDataset):
 #def buildConfig(trainMetadata):
     print("Configurando el modelo Detectron2 para entrenamiento...")
     cfg = get_cfg()
-    cfg.OUTPUT_DIR = f"{path_dir_model}/2000epochsFLAIR101"
+    cfg.OUTPUT_DIR = f"{path_dir_model}/5000epochsFLAIR101"
     cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"))
     cfg.DATASETS.TRAIN = (nameTrainDataset,)
     cfg.DATASETS.TEST = ()
@@ -55,8 +55,8 @@ def setup_datasets(nameTrainDataset, nameValDataset):
     cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml")  # Descarga del modelo troncal Mask R-CNN con ResNet50 y FPN
     cfg.SOLVER.IMS_PER_BATCH = 8  # El batch es pequeño dada la dimensión de nuestro conjunto de datos
     cfg.SOLVER.BASE_LR = 0.00025
-    cfg.SOLVER.MAX_ITER = 2000    # 6000 iteraciones han sido las óptimas para el proyecto
-    cfg.SOLVER.STEPS = [1000,]
+    cfg.SOLVER.MAX_ITER = 5000    # 6000 iteraciones han sido las óptimas para el proyecto
+    cfg.SOLVER.STEPS = [2500,]
     cfg.INPUT.MIN_SIZE_TRAIN = (512, 640) # Redimensionamiento de las imágenes de entrenamiento
     cfg.INPUT.MAX_SIZE_TRAIN = 1333        
     cfg.INPUT.MIN_SIZE_TEST  = 512
@@ -74,7 +74,7 @@ def setup_datasets(nameTrainDataset, nameValDataset):
 # Guardamos la configuración en un archivo .yaml
 def save_config(cfg, path_dir):
     print("Guardando la configuración del modelo en un archivo YAML...")
-    config_yaml_path = f"{path_dir}/10000epochsFLAIR/config.yaml"
+    config_yaml_path = f"{path_dir}/5000epochsFLAIR101/config.yaml"
     with open(config_yaml_path, 'w') as file:
         yaml.dump(cfg, file)
 
@@ -100,18 +100,18 @@ def main():
         cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7   # ponemos un umbral para el test, puede modificarse
         predictor = DefaultPredictor(cfg)
 
-        inference(predictor, val_dataset_dicts, val_metadata, f"{base_path_dir}/output_maskDivided_valFLAIR", f"{path_dir_model}/2000epochsFLAIR101/output_images")
+        inference(predictor, val_dataset_dicts, val_metadata, f"{base_path_dir}/output_maskDivided_valFLAIR", f"{path_dir_model}/5000epochsFLAIR101/output_images")
 
         # evaluamos las métricas del modelo con COCOEvaluator
-        cocoevaluator = COCOEvaluator("my_dataset_val", output_dir=f"{path_dir_model}/evaluacion/2000epochsFLAIR101")
+        cocoevaluator = COCOEvaluator("my_dataset_val", output_dir=f"{path_dir_model}/evaluacion/5000epochsFLAIR101")
         dicef1evaluator = SegEvaluator(iou_thresh=0.5)
         evaluator = DatasetEvaluators([cocoevaluator, dicef1evaluator])
         val_loader = build_detection_test_loader(cfg, "my_dataset_val")
         results = inference_on_dataset(predictor.model, val_loader, evaluator)
 
         df = pd.json_normalize(results, sep='_')  # Convertir el resultado a un DataFrame de pandas
-        df["configuracion"] = "2000epochsFLAIR101"
-        csvPath = pathlib.Path(f"{path_dir_model}/results.csv")
+        df["configuracion"] = "5000epochsFLAIR101"
+        csvPath = pathlib.Path(f"{path_dir_model}/allresults.csv")
         df.to_csv(csvPath, mode="a", header=not csvPath.exists(), index=False)
         
 
