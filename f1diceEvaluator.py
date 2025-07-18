@@ -20,7 +20,14 @@ class InstanceSegEvaluator(DatasetEvaluator):
 
         meta = MetadataCatalog.get(dataset_name)
         self._class_names = meta.thing_classes
-        self._num_classes = len(self._class_names)
+
+        # Ensure the mapping exists or create default mapping
+        if not hasattr(meta, "thing_dataset_id_to_contiguous_id"):
+            meta.thing_dataset_id_to_contiguous_id = {i: i for i in range(len(meta.thing_classes))}
+        self._contiguous_id_to_dataset_id = {
+            v: k for k, v in meta.thing_dataset_id_to_contiguous_id.items()
+        }
+
         self._json_file = meta.json_file
         self._coco_gt = COCO(self._json_file)
 
@@ -69,12 +76,12 @@ class InstanceSegEvaluator(DatasetEvaluator):
         per_image_scores = {}
         for pred in self._predictions:
             mask = pred["mask"].astype(np.bool_)
-            category = pred["category_id"]
+            contiguous_category = pred["category_id"]
+            category = self._contiguous_id_to_dataset_id.get(contiguous_category, contiguous_category)
             image_id = pred["image_id"]
 
             # Load ground truth masks for the image and category
             ann_ids = self._coco_gt.getAnnIds(imgIds=image_id, catIds=[category], iscrowd=None)
-            print(f"Processing image_id: {image_id}, category: {category}, ann_ids: {ann_ids}")
             anns = self._coco_gt.loadAnns(ann_ids)
 
             gt_mask = np.zeros((pred["height"], pred["width"]), dtype=np.bool_)
@@ -93,7 +100,7 @@ class InstanceSegEvaluator(DatasetEvaluator):
             recall = intersection / (gt_sum + 1e-6)
             f1 = (2 * precision * recall) / (precision + recall + 1e-6)
 
-            per_image_scores.setdefault(category, []).append((dice, f1))
+            per_image_scores.setdefault(contiguous_category, []).append((dice, f1))
 
         results = OrderedDict()
         for cat_id, scores in per_image_scores.items():
