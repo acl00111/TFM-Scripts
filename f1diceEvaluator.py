@@ -1,80 +1,111 @@
-# Evaluador personalizado para segmentación por instancias (tipo COCO)
-# Cálculo de DICE y F1-score a partir de máscaras de predicciones y anotaciones
-
+# InstanceSegEvaluator compatible with COCO-style instance segmentation datasets
+import logging
+import os
 import numpy as np
-import pycocotools.mask as mask_util
+from collections import OrderedDict
+import torch
+import itertools
 from detectron2.evaluation.evaluator import DatasetEvaluator
 from detectron2.data import MetadataCatalog
-from detectron2.utils.logger import setup_logger
-from collections import defaultdict, OrderedDict
-import logging
-
-setup_logger()
+from detectron2.utils.comm import all_gather, is_main_process, synchronize
+import pycocotools.mask as mask_util
+from pycocotools.coco import COCO
 
 class InstanceSegEvaluator(DatasetEvaluator):
-    def __init__(self, dataset_name):
-        self.dataset_name = dataset_name
-        self._metadata = MetadataCatalog.get(dataset_name)
-        self.logger = logging.getLogger(__name__)
-        self.reset()
+    def __init__(self, dataset_name, distributed=True):
+        self._logger = logging.getLogger(__name__)
+        self._dataset_name = dataset_name
+        self._distributed = distributed
+        self._cpu_device = torch.device("cpu")
+
+        meta = MetadataCatalog.get(dataset_name)
+        self._class_names = meta.thing_classes
+        self._num_classes = len(self._class_names)
+        self._json_file = meta.json_file
+        self._coco_gt = COCO(self._json_file)
+
+        self._predictions = []
 
     def reset(self):
-        self.dice_scores = []
-        self.f1_scores = []
-
-    def _decode_masks(self, instances):
-        if len(instances) == 0:
-            return np.zeros((0, 1, 1), dtype=bool)
-        masks = instances.pred_masks.cpu().numpy()
-        return masks.astype(bool)
+        self._predictions = []
 
     def process(self, inputs, outputs):
         for input, output in zip(inputs, outputs):
-            height, width = input["height"], input["width"]
+            image_id = input["image_id"]
+            height = input["height"]
+            width = input["width"]
+            pred_instances = output["instances"].to(self._cpu_device)
 
-            gt_masks_encoded = [ann["segmentation"] for ann in input["annotations"] if ann.get("iscrowd", 0) == 0]
-            gt_masks_decoded = mask_util.decode(gt_masks_encoded)
-            if gt_masks_decoded.ndim == 2:
-                gt_masks_decoded = gt_masks_decoded[:, :, None]  # 1 instancia
-            gt_masks = gt_masks_decoded.astype(bool).transpose(2, 0, 1)
+            for i in range(len(pred_instances)):
+                pred = pred_instances[i]
+                if not pred.has("pred_masks"):
+                    continue
+                mask = pred.pred_masks.numpy()
+                category_id = int(pred.pred_classes)
+                score = float(pred.scores)
 
-            pred_masks = output["instances"].pred_masks.cpu().numpy().astype(bool) if len(output["instances"]) > 0 else np.zeros((0, height, width), dtype=bool)
-
-            dice, f1 = self._calculate_metrics(gt_masks, pred_masks)
-            self.dice_scores.append(dice)
-            self.f1_scores.append(f1)
-
-    def _calculate_metrics(self, gt_masks, pred_masks):
-        if len(gt_masks) == 0 and len(pred_masks) == 0:
-            return 1.0, 1.0  # Perfect match (both empty)
-        if len(gt_masks) == 0 or len(pred_masks) == 0:
-            return 0.0, 0.0
-
-        # Union todas las máscaras
-        gt_union = np.any(gt_masks, axis=0)
-        pred_union = np.any(pred_masks, axis=0)
-
-        intersection = np.logical_and(gt_union, pred_union).sum()
-        gt_area = gt_union.sum()
-        pred_area = pred_union.sum()
-
-        dice = 2 * intersection / (gt_area + pred_area + 1e-6)
-        precision = intersection / (pred_area + 1e-6)
-        recall = intersection / (gt_area + 1e-6)
-        f1 = 2 * precision * recall / (precision + recall + 1e-6)
-
-        return dice, f1
+                self._predictions.append({
+                    "image_id": image_id,
+                    "category_id": category_id,
+                    "mask": mask,
+                    "score": score,
+                    "height": height,
+                    "width": width
+                })
 
     def evaluate(self):
-        if len(self.dice_scores) == 0:
+        if self._distributed:
+            synchronize()
+            self._predictions = all_gather(self._predictions)
+            self._predictions = list(itertools.chain(*self._predictions))
+            if not is_main_process():
+                return
+
+        if len(self._predictions) == 0:
+            self._logger.warning("No predictions to evaluate.")
             return {}
-        mean_dice = 100 * np.mean(self.dice_scores)
-        mean_f1 = 100 * np.mean(self.f1_scores)
-        results = OrderedDict({
-            "instance_seg": {
-                "mean_dice": mean_dice,
-                "mean_f1": mean_f1,
-            }
-        })
-        self.logger.info(results)
-        return results
+
+        # Compute Dice and F1
+        per_image_scores = {}
+        for pred in self._predictions:
+            mask = pred["mask"].astype(np.bool_)
+            category = pred["category_id"]
+            image_id = pred["image_id"]
+
+            # Load ground truth masks for the image and category
+            ann_ids = self._coco_gt.getAnnIds(imgIds=image_id, catIds=[category], iscrowd=None)
+            anns = self._coco_gt.loadAnns(ann_ids)
+
+            gt_mask = np.zeros((pred["height"], pred["width"]), dtype=np.bool_)
+            for ann in anns:
+                rle = self._coco_gt.annToRLE(ann)
+                m = mask_util.decode(rle).astype(np.bool_)
+                gt_mask = np.logical_or(gt_mask, m)
+
+            intersection = np.logical_and(mask, gt_mask).sum()
+            union = np.logical_or(mask, gt_mask).sum()
+            gt_sum = gt_mask.sum()
+            pred_sum = mask.sum()
+
+            dice = (2 * intersection) / (gt_sum + pred_sum + 1e-6)
+            precision = intersection / (pred_sum + 1e-6)
+            recall = intersection / (gt_sum + 1e-6)
+            f1 = (2 * precision * recall) / (precision + recall + 1e-6)
+
+            per_image_scores.setdefault(category, []).append((dice, f1))
+
+        results = OrderedDict()
+        for cat_id, scores in per_image_scores.items():
+            if len(scores) == 0:
+                continue
+            mean_dice = np.mean([s[0] for s in scores])
+            mean_f1 = np.mean([s[1] for s in scores])
+            cat_name = self._class_names[cat_id] if cat_id < len(self._class_names) else str(cat_id)
+            results[f"Dice-{cat_name}"] = 100 * mean_dice
+            results[f"F1-{cat_name}"] = 100 * mean_f1
+
+        results["mean_dice"] = 100 * np.mean([v for k, v in results.items() if k.startswith("Dice-")])
+        results["mean_f1"] = 100 * np.mean([v for k, v in results.items() if k.startswith("F1-")])
+
+        self._logger.info(results)
+        return OrderedDict({"instance_seg": results})
