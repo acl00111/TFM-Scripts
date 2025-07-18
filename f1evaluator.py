@@ -1,148 +1,281 @@
-# InstanceSegEvaluator compatible with COCO-style instance segmentation datasets
-import logging
+import copy
+import datetime
 import os
+import time
+
+import cv2
+import detectron2.data.detection_utils as utils
+import matplotlib.pyplot as plt
 import numpy as np
-from collections import OrderedDict, defaultdict
 import torch
-import itertools
-from detectron2.evaluation.evaluator import DatasetEvaluator
-from detectron2.data import MetadataCatalog
-from detectron2.utils.comm import all_gather, is_main_process, synchronize
-import pycocotools.mask as mask_util
-from pycocotools.coco import COCO
-from datetime import datetime
+from detectron2 import model_zoo
+from detectron2.config import get_cfg
+from detectron2.data.transforms import ResizeTransform, NoOpTransform, ResizeShortestEdge, RandomFlip, \
+    apply_augmentations
+from detectron2.engine import DefaultPredictor
+from detectron2.modeling.test_time_augmentation import GeneralizedRCNNWithTTA
 
-class InstanceSegEvaluator(DatasetEvaluator):
-    def __init__(self, dataset_name, distributed=True, log_dir="./logs"):
-        self._dataset_name = dataset_name
-        self._distributed = distributed
-        self._cpu_device = torch.device("cpu")
 
-        # Logger único por dataset
-        self._logger = logging.getLogger(f"InstanceSegEvaluator_{dataset_name}")
-        self._logger.setLevel(logging.DEBUG)
+# TODO: which one is wrong, wrong because of which class, wrong because of classification or IoU?
+def find_ious(eval_boxes, output_boxes):
+    """
+    Both are np.array of boxes in form of x1, y1, x2, y2
+    """
+    eval_areas = (eval_boxes[:, 2] - eval_boxes[:, 0] + 1) * (eval_boxes[:, 3] - eval_boxes[:, 1] + 1)
+    output_areas = (output_boxes[:, 2] - output_boxes[:, 0] + 1) * (output_boxes[:, 3] - output_boxes[:, 1] + 1)
+    # The array of IoUs
+    ious = np.zeros((len(eval_boxes), len(output_boxes)))
+    # calculate the IOU
+    for eval_idx in range(len(eval_boxes)):
+        xx1 = np.maximum(eval_boxes[eval_idx, 0], output_boxes[:, 0])
+        yy1 = np.maximum(eval_boxes[eval_idx, 1], output_boxes[:, 1])
+        xx2 = np.minimum(eval_boxes[eval_idx, 2], output_boxes[:, 2])
+        yy2 = np.minimum(eval_boxes[eval_idx, 3], output_boxes[:, 3])
+        w = np.maximum(0.0, xx2 - xx1 + 1)
+        h = np.maximum(0.0, yy2 - yy1 + 1)
+        inter = w * h
+        ovr = inter / (eval_areas[eval_idx] + output_areas - inter)
+        ious[eval_idx, :] = ovr
+    return ious
 
-        os.makedirs(log_dir, exist_ok=True)
-        log_filename = os.path.join(log_dir, f"instance_eval_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
 
-        if not any(isinstance(h, logging.FileHandler) and h.baseFilename == log_filename for h in self._logger.handlers):
-            file_handler = logging.FileHandler(log_filename)
-            file_handler.setLevel(logging.DEBUG)
-            file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-            self._logger.addHandler(file_handler)
+def count_confusions(eval_boxes, output_boxes, iou_thresh=0.5):
+    """
+    Inputs must be in np.array xyxy format
+    """
+    ious = find_ious(eval_boxes, output_boxes)
+    #     import pdb
+    #     pdb.set_trace()
+    result = {"true_positive": 0, "false_negative": 0, "false_positive": 0, "true_negative": 0}
+    # ious conditions
+    eval_trues = []
+    output_trues = []
+    while True:
+        ret = np.where((ious > iou_thresh) & (ious == ious.max()))
+        if len(ret[0]) > 0:
+            # TODO: Only take the first one is not very suitable, take the one that is max and min with others (strict)
+            eval_true_idx = ret[0][0]
+            output_true_idx = ret[1][0]
+            ious[eval_true_idx, :] = 0  # clean the rows
+            ious[:, output_true_idx] = 0  # clean the columns
+            eval_trues.append(eval_true_idx)
+            output_trues.append(output_true_idx)
+        else:
+            break
+    # True positives
+    result["true_positive"] = len(eval_trues)
+    # False positives => we predicted in but not in
+    result["false_positive"] = sum([1 for i in range(len(output_boxes)) if i not in output_trues])
+    # False negatives => in eval but not in true eval
+    result["false_negative"] = sum([1 for i in range(len(eval_boxes)) if i not in eval_trues])
+    return result
 
-        meta = MetadataCatalog.get(dataset_name)
-        self._class_names = meta.thing_classes
 
-        if not hasattr(meta, "thing_dataset_id_to_contiguous_id"):
-            meta.thing_dataset_id_to_contiguous_id = {i: i for i in range(len(meta.thing_classes))}
-        self._contiguous_id_to_dataset_id = {
-            v: k for k, v in meta.thing_dataset_id_to_contiguous_id.items()
-        }
+def evaluate_output(eval_dict, outputs, score_thresh_test, iou_thresh=0.5, top_n=5):
+    """
+    Classes here are still zero based
+    """
+    output_scores = outputs["instances"].scores.to('cpu').data.numpy()
+    output_boxes = np.array([box.cpu().numpy() for box in outputs["instances"].pred_boxes])
+    output_classes = outputs['instances'].pred_classes.to('cpu').data.numpy()
+    # Filtering the outputs
+    if len(output_boxes) > 0:
+        # filter by scores #TODO: Different classes may have different thresh
+        keep = np.where(output_scores >= score_thresh_test)[0]
+        output_boxes = output_boxes[keep]
+        output_classes = output_classes[keep]
+        output_scores = output_scores[keep]
+        # take only top_n
+        keep = np.argsort(output_scores)[::-1][:top_n]
+        output_boxes = output_boxes[keep]
+        output_classes = output_classes[keep]
+        ouput_scores = output_scores[keep]
+        output_boxes = output_boxes.astype(np.int32)
 
-        self._json_file = meta.json_file
-        self._coco_gt = COCO(self._json_file)
+    annotations = eval_dict['annotations']
+    eval_boxes = np.array([anno['bbox'] for anno in annotations])
+    eval_classes = np.array([anno['category_id'] for anno in annotations])
+    result = [{'true_positive': 0, 'false_negative': 0, 'false_positive': 0, 'true_negative': 0} for _ in range(4)]
 
-        self._predictions = defaultdict(list)
+    for category_id in range(4):
+        eval_keep_for_cls = np.where(eval_classes == category_id)[0]
+        output_keep_for_cls = np.where(output_classes == category_id)[0]
+        if len(eval_keep_for_cls) == 0:  # there are no evals but saying there are => false positive
+            result[category_id]['false_positive'] = len(output_keep_for_cls)
+        if len(output_keep_for_cls) == 0:  # there are evals but there are no predictions => false negative
+            result[category_id]['false_negative'] = len(eval_keep_for_cls)
+        if len(eval_keep_for_cls) > 0 and len(output_keep_for_cls) > 0:  # There are both we need to check
+            eval_boxes_for_cls = eval_boxes[eval_keep_for_cls]
+            output_boxes_for_cls = output_boxes[output_keep_for_cls]
+            result[category_id] = count_confusions(eval_boxes_for_cls, output_boxes_for_cls)
 
-    def reset(self):
-        self._predictions = defaultdict(list)
+    return result
 
-    def process(self, inputs, outputs):
-        for input, output in zip(inputs, outputs):
-            image_id = input["image_id"]
-            height = input["height"]
-            width = input["width"]
-            pred_instances = output["instances"].to(self._cpu_device)
 
-            for i in range(len(pred_instances)):
-                pred = pred_instances[i]
-                if not pred.has("pred_masks"):
-                    continue
-                mask = pred.pred_masks.numpy()
-                category_id = int(pred.pred_classes)
-                score = float(pred.scores)
+def predict(test_dicts, cfg,
+            score_thresh_test=0.3):  # threshold should be low to not filtering out too much, we will filter at the evaluation time
+    start_time = time.time()
+    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = score_thresh_test
+    predictor = DefaultPredictor(cfg)
+    ret = []
+    for d in test_dicts:
+        im = cv2.imread(d["file_name"])
+        outputs = predictor(im)
+        ret.append(outputs)
+    duration = time.time() - start_time
+    print(f'Done inferences in {duration / 60} minutes at {datetime.datetime.now()}')
+    return ret
 
-                self._logger.debug(f"Processed prediction for image {image_id}, category {category_id}, score {score}, mask shape {mask.shape}")
 
-                self._predictions[(image_id, category_id)].append({
-                    "mask": mask,
-                    "score": score,
-                    "height": height,
-                    "width": width
-                })
+def predict_batches(eval_dicts, cfg, batch_size=10):
+    def get_test_batch(test_dicts, batch_size=batch_size):
+        l = len(test_dicts)
+        for ndx in range(0, l, batch_size):
+            batch_data = test_dicts[ndx:min(ndx + batch_size, l)]
+            ret = []
+            for dataset_dict in batch_data:
+                dataset_dict = copy.deepcopy(dataset_dict)
+                image = utils.read_image(dataset_dict.pop("file_name"), format="BGR").copy()
+                image = torch.from_numpy(image).permute(2, 0, 1)  # CHW
+                dataset_dict["image"] = image
+                ret.append(dataset_dict)
+            # read data for it
+            yield ret
 
-    def evaluate(self):
-        if self._distributed:
-            synchronize()
-            pred_list = all_gather(self._predictions)
-            self._predictions = defaultdict(list)
-            for pred in pred_list:
-                for key, val in pred.items():
-                    self._predictions[key].extend(val)
-            if not is_main_process():
-                return
+    output_items = []
+    num_batches = len(eval_dicts) // batch_size + 1
+    batch_counter = 0
+    for batch1 in get_test_batch(eval_dicts, batch_size=10):
+        batch_counter += 1
+        print(f'Batch {batch_counter}/{num_batches}')
+        batch_output_items = predict_with_tta(batch1, cfg, score_thresh_test=0.3)
+        output_items += batch_output_items
+    return output_items
 
-        if len(self._predictions) == 0:
-            self._logger.warning("No predictions to evaluate.")
-            return {}
 
-        per_class_scores = defaultdict(list)
+class DatasetMapperTTA:
+    """
+    Implement test-time augmentation for detection data.
+    It is a callable which takes a dataset dict from a detection dataset,
+    and returns a list of dataset dicts where the images
+    are augmented from the input image by the transformations defined in the config.
+    This is used for test-time augmentation.
+    """
 
-        for (image_id, contiguous_category), preds in self._predictions.items():
-            category = self._contiguous_id_to_dataset_id.get(contiguous_category, contiguous_category)
-            ann_ids = self._coco_gt.getAnnIds(imgIds=image_id, catIds=[category], iscrowd=None)
-            self._logger.debug(f"Evaluating image {image_id}, category {category}, found ann_ids: {ann_ids}")
-            anns = self._coco_gt.loadAnns(ann_ids)
+    def __init__(self, cfg):
+        self.min_sizes = cfg.TEST.AUG.MIN_SIZES
+        self.max_size = cfg.TEST.AUG.MAX_SIZE
+        self.flip = cfg.TEST.AUG.FLIP
+        self.image_format = cfg.INPUT.FORMAT
 
-            if len(anns) == 0:
-                gt_mask = np.zeros((preds[0]["height"], preds[0]["width"]), dtype=np.bool_)
-            else:
-                gt_mask = np.zeros((preds[0]["height"], preds[0]["width"]), dtype=np.bool_)
-                for ann in anns:
-                    rle = self._coco_gt.annToRLE(ann)
-                    m = mask_util.decode(rle).astype(np.bool_)
-                    gt_mask = np.logical_or(gt_mask, m)
+    def __call__(self, dataset_dict):
+        """
+        Args:
+            dict: a dict in standard model input format. See tutorials for details.
 
-            # Combina todas las máscaras predichas para este (image_id, category)
-            pred_mask = np.zeros_like(gt_mask, dtype=np.bool_)
-            for pred in preds:
-                pred_mask = np.logical_or(pred_mask, pred["mask"][0])
+        Returns:
+            list[dict]:
+                a list of dicts, which contain augmented version of the input image.
+                The total number of dicts is ``len(min_sizes) * (2 if flip else 1)``.
+                Each dict has field "transforms" which is a TransformList,
+                containing the transforms that are used to generate this image.
+        """
+        numpy_image = dataset_dict["image"].permute(1, 2, 0).numpy()
+        shape = numpy_image.shape
+        orig_shape = (dataset_dict["height"], dataset_dict["width"])
+        if shape[:2] != orig_shape:
+            # It transforms the "original" image in the dataset to the input image
+            pre_tfm = ResizeTransform(orig_shape[0], orig_shape[1], shape[0], shape[1])
+        else:
+            pre_tfm = NoOpTransform()
 
-            if gt_mask.sum() == 0 and pred_mask.sum() == 0:
-                dice, f1 = 1.0, 1.0
-            else:
-                intersection = np.logical_and(pred_mask, gt_mask).sum()
-                union = np.logical_or(pred_mask, gt_mask).sum()
-                gt_sum = gt_mask.sum()
-                pred_sum = pred_mask.sum()
+        # Create all combinations of augmentations to use
+        aug_candidates = []  # each element is a list[Augmentation]
+        for min_size in self.min_sizes:
+            resize = ResizeShortestEdge(min_size, self.max_size)
+            aug_candidates.append([resize])  # resize only
+            if self.flip:
+                flip = RandomFlip(prob=1.0)
+                aug_candidates.append([resize, flip])  # resize + flip
 
-                dice = (2 * intersection) / (gt_sum + pred_sum + 1e-6)
-                precision = intersection / (pred_sum + 1e-6)
-                recall = intersection / (gt_sum + 1e-6)
-                f1 = (2 * precision * recall) / (precision + recall + 1e-6)
+        # Apply all the augmentations
+        ret = []
+        for aug in aug_candidates:
+            new_image, tfms = apply_augmentations(aug, np.copy(numpy_image))
+            torch_image = torch.from_numpy(np.ascontiguousarray(new_image.transpose(2, 0, 1)))
 
-            self._logger.debug(f"Image {image_id}, Dice={dice:.4f}, F1={f1:.4f}, intersection={intersection}, gt_sum={gt_sum}, pred_sum={pred_sum}")
-            per_class_scores[contiguous_category].append((dice, f1))
+            dic = copy.deepcopy(dataset_dict)
+            dic["transforms"] = pre_tfm + tfms
+            dic["image"] = torch_image
+            ret.append(dic)
+        return ret
 
-        results = OrderedDict()
-        for cat_id, scores in per_class_scores.items():
-            if len(scores) == 0:
-                continue
-            mean_dice = np.mean([s[0] for s in scores])
-            mean_f1 = np.mean([s[1] for s in scores])
-            cat_name = self._class_names[cat_id] if cat_id < len(self._class_names) else str(cat_id)
-            results[f"Dice-{cat_name}"] = 100 * mean_dice
-            results[f"F1-{cat_name}"] = 100 * mean_f1
 
-        dice_vals = [v / 100 for k, v in results.items() if k.startswith("Dice-")]
-        f1_vals = [v / 100 for k, v in results.items() if k.startswith("F1-")]
+def predict_with_tta(test_dicts, cfg, score_thresh_test=0.5, batch_size=3):
+    with torch.no_grad():
+        cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = score_thresh_test
+        predictor = DefaultPredictor(cfg)
+        model = predictor.model
+        tta_model = GeneralizedRCNNWithTTA(cfg, model, batch_size=batch_size)
+        tta_model.image_format = tta_model.tta_mapper.image_format
+        ret = tta_model(test_dicts)
+    return ret
 
-        results["mean_dice"] = 100 * np.mean(dice_vals)
-        results["mean_f1"] = 100 * np.mean(f1_vals)
 
-        self._logger.info("Final evaluation results:")
-        for k, v in results.items():
-            self._logger.info(f"{k}: {v:.2f}")
+def evaluate_thresh_test(eval_dicts, output_items, score_thresh_test, iou_thresh=0.5):
+    all_confusions = [evaluate_output(eval_dicts[i], output_items[i], score_thresh_test, iou_thresh=iou_thresh) for i in
+                      range(len(eval_dicts))]
+    true_positives = sum(
+        [sum([confusion[cls_idx]['true_positive'] for cls_idx in range(4)]) for confusion in all_confusions])
+    false_positives = sum(
+        [sum([confusion[cls_idx]['false_positive'] for cls_idx in range(4)]) for confusion in all_confusions])
+    false_negatives = sum(
+        [sum([confusion[cls_idx]['false_negative'] for cls_idx in range(4)]) for confusion in all_confusions])
+    precision = true_positives / (true_positives + false_positives)
+    recall = true_positives / (true_positives + false_negatives)
+    return 2 * (precision * recall) / (precision + recall)
 
-        return OrderedDict({"instance_seg": results})
+
+def evaluate_model(eval_dicts, output_items, score_thresh_tests):
+    return [evaluate_thresh_test(eval_dicts, output_items, score_thresh_test=score_thresh_test, iou_thresh=0.5) for
+            score_thresh_test in score_thresh_tests]
+
+
+def evaluate_models(cfg, eval_dicts, the_model_names):
+    model_bests = []
+    threshold_bests = []
+    f1_bests = []
+    for the_model_name in the_model_names:
+        print(f'Evaluating model {the_model_name}')
+        cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, f"{the_model_name}.pth")
+        output_items = predict(eval_dicts, cfg,
+                               score_thresh_test=0.5)  # the score thresh test here should be small enough to not drop many boxes
+        score_thresh_tests = np.arange(0.3, 1.0, 0.01)
+        model_evals = evaluate_model(eval_dicts, output_items, score_thresh_tests)
+        model_bests.append(max(model_evals))
+        plt.plot(score_thresh_tests, model_evals, label=the_model_name)
+        max_idx = np.argmax(model_evals)
+        threshold_bests.append(score_thresh_tests[max_idx])
+        f1_bests.append(model_evals[max_idx])
+        print(f'{the_model_name} max f1 {model_evals[max_idx]} at {score_thresh_tests[max_idx]}')
+    plt.legend()
+    return model_bests, threshold_bests, f1_bests
+
+
+def get_evaluation_configuration(OUTPUT_DIR, base_config_file, num_gpus=2, ims_per_batch=16):
+    cfg = get_cfg()
+    cfg.OUTPUT_DIR = OUTPUT_DIR
+    cfg.merge_from_file(model_zoo.get_config_file(base_config_file))
+
+    cfg.DATASETS.TRAIN = ("road_damage_train",)
+    cfg.DATASETS.TEST = ()
+    # # for validation
+    cfg.DATASETS.TEST = ("road_damage_eval",)
+
+    cfg.DATALOADER.NUM_WORKERS = ims_per_batch
+    cfg.SOLVER.REFERENCE_WORLD_SIZE = num_gpus
+
+    cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 512  # 12500 # 4096   # faster, and good enough for this toy dataset (default: 512)
+    cfg.MODEL.ROI_HEADS.NUM_CLASSES = 4
+
+    return cfg
