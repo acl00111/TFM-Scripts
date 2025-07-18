@@ -18,8 +18,8 @@ from detectron2.data.datasets import register_coco_instances
 from detectron2.utils.visualizer import ColorMode
 from detectron2.evaluation import COCOEvaluator, inference_on_dataset
 from detectron2.data import build_detection_test_loader
-from detectron2.evaluation import DatasetEvaluators
-from f1diceEvaluator import SegEvaluator  # Importamos la clase SegEvaluator desde f1diceEvaluator.py
+from detectron2.evaluation import DatasetEvaluators, DatasetEvaluator
+from f1diceEvaluator import SemSegEvaluator  # Importamos la clase SemSegEvaluator desde f1diceEvaluator.py
 
 from inference import inference  # Importamos la función de inferencia desde el archivo inference.py
 
@@ -104,10 +104,11 @@ def main():
 
         # evaluamos las métricas del modelo con COCOEvaluator
         cocoevaluator = COCOEvaluator("my_dataset_val", output_dir=f"{path_dir_model}/evaluacion/5000epochsFLAIR101")
-        dicef1evaluator = SegEvaluator("my_dataset_val", iou_thresh=0.5)
-        evaluator = DatasetEvaluators([cocoevaluator, dicef1evaluator])
+        dicef1evaluator = SemSegEvaluator("my_dataset_val", output_dir=f"{path_dir_model}/evaluacion/5000epochsFLAIR101")
+       # evaluator = DatasetEvaluators([cocoevaluator, dicef1evaluator])
+       # evaluator = DatasetEvaluator(cocoevaluator)
         val_loader = build_detection_test_loader(cfg, "my_dataset_val")
-        results = inference_on_dataset(predictor.model, val_loader, evaluator)
+        results = inference_on_dataset(predictor.model, val_loader, dicef1evaluator)
 
         df = pd.json_normalize(results, sep='_')  # Convertir el resultado a un DataFrame de pandas
         df["configuracion"] = "5000epochsFLAIR101"
