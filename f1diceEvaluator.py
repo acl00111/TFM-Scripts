@@ -10,18 +10,27 @@ from detectron2.data import MetadataCatalog
 from detectron2.utils.comm import all_gather, is_main_process, synchronize
 import pycocotools.mask as mask_util
 from pycocotools.coco import COCO
+from datetime import datetime
 
 class InstanceSegEvaluator(DatasetEvaluator):
-    def __init__(self, dataset_name, distributed=True):
+    def __init__(self, dataset_name, distributed=True, log_dir="./logs"):
         self._logger = logging.getLogger(__name__)
         self._dataset_name = dataset_name
         self._distributed = distributed
         self._cpu_device = torch.device("cpu")
 
+        # Setup file logger
+        os.makedirs(log_dir, exist_ok=True)
+        log_filename = os.path.join(log_dir, f"instance_eval_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+        file_handler = logging.FileHandler(log_filename)
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+        self._logger.addHandler(file_handler)
+        self._logger.setLevel(logging.DEBUG)
+
         meta = MetadataCatalog.get(dataset_name)
         self._class_names = meta.thing_classes
 
-        # Ensure the mapping exists or create default mapping
         if not hasattr(meta, "thing_dataset_id_to_contiguous_id"):
             meta.thing_dataset_id_to_contiguous_id = {i: i for i in range(len(meta.thing_classes))}
         self._contiguous_id_to_dataset_id = {
@@ -51,6 +60,8 @@ class InstanceSegEvaluator(DatasetEvaluator):
                 category_id = int(pred.pred_classes)
                 score = float(pred.scores)
 
+                self._logger.debug(f"Processed prediction for image {image_id}, category {category_id}, score {score}, mask shape {mask.shape}")
+
                 self._predictions.append({
                     "image_id": image_id,
                     "category_id": category_id,
@@ -72,7 +83,6 @@ class InstanceSegEvaluator(DatasetEvaluator):
             self._logger.warning("No predictions to evaluate.")
             return {}
 
-        # Compute Dice and F1
         per_image_scores = {}
         for pred in self._predictions:
             mask = pred["mask"].astype(np.bool_)
@@ -80,25 +90,31 @@ class InstanceSegEvaluator(DatasetEvaluator):
             category = self._contiguous_id_to_dataset_id.get(contiguous_category, contiguous_category)
             image_id = pred["image_id"]
 
-            # Load ground truth masks for the image and category
             ann_ids = self._coco_gt.getAnnIds(imgIds=image_id, catIds=[category], iscrowd=None)
-            anns = self._coco_gt.loadAnns(ann_ids)
+            self._logger.debug(f"Evaluating image {image_id}, category {category}, found ann_ids: {ann_ids}")
 
+            anns = self._coco_gt.loadAnns(ann_ids)
             gt_mask = np.zeros((pred["height"], pred["width"]), dtype=np.bool_)
+
             for ann in anns:
                 rle = self._coco_gt.annToRLE(ann)
                 m = mask_util.decode(rle).astype(np.bool_)
                 gt_mask = np.logical_or(gt_mask, m)
 
-            intersection = np.logical_and(mask, gt_mask).sum()
-            union = np.logical_or(mask, gt_mask).sum()
-            gt_sum = gt_mask.sum()
-            pred_sum = mask.sum()
+            if gt_mask.sum() == 0 and mask.sum() == 0:
+                dice, f1 = 1.0, 1.0
+            else:
+                intersection = np.logical_and(mask, gt_mask).sum()
+                union = np.logical_or(mask, gt_mask).sum()
+                gt_sum = gt_mask.sum()
+                pred_sum = mask.sum()
 
-            dice = (2 * intersection) / (gt_sum + pred_sum + 1e-6)
-            precision = intersection / (pred_sum + 1e-6)
-            recall = intersection / (gt_sum + 1e-6)
-            f1 = (2 * precision * recall) / (precision + recall + 1e-6)
+                dice = (2 * intersection) / (gt_sum + pred_sum + 1e-6)
+                precision = intersection / (pred_sum + 1e-6)
+                recall = intersection / (gt_sum + 1e-6)
+                f1 = (2 * precision * recall) / (precision + recall + 1e-6)
+
+            self._logger.debug(f"Image {image_id}, Dice={dice:.4f}, F1={f1:.4f}, intersection={intersection}, gt_sum={gt_sum}, pred_sum={pred_sum}")
 
             per_image_scores.setdefault(contiguous_category, []).append((dice, f1))
 
@@ -112,8 +128,14 @@ class InstanceSegEvaluator(DatasetEvaluator):
             results[f"Dice-{cat_name}"] = 100 * mean_dice
             results[f"F1-{cat_name}"] = 100 * mean_f1
 
-        results["mean_dice"] = 100 * np.mean([v for k, v in results.items() if k.startswith("Dice-")])
-        results["mean_f1"] = 100 * np.mean([v for k, v in results.items() if k.startswith("F1-")])
+        dice_vals = [v / 100 for k, v in results.items() if k.startswith("Dice-")]
+        f1_vals = [v / 100 for k, v in results.items() if k.startswith("F1-")]
 
-        self._logger.info(results)
+        results["mean_dice"] = 100 * np.mean(dice_vals)
+        results["mean_f1"] = 100 * np.mean(f1_vals)
+
+        self._logger.info("Final evaluation results:")
+        for k, v in results.items():
+            self._logger.info(f"{k}: {v:.2f}")
+
         return OrderedDict({"instance_seg": results})
