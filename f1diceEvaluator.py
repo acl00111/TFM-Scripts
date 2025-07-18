@@ -74,6 +74,7 @@ class InstanceSegEvaluator(DatasetEvaluator):
 
             # Load ground truth masks for the image and category
             ann_ids = self._coco_gt.getAnnIds(imgIds=image_id, catIds=[category], iscrowd=None)
+            print(f"Processing image_id: {image_id}, category: {category}, ann_ids: {ann_ids}")
             anns = self._coco_gt.loadAnns(ann_ids)
 
             gt_mask = np.zeros((pred["height"], pred["width"]), dtype=np.bool_)
