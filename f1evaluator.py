@@ -60,16 +60,18 @@ def evaluate_masksDiceF1(gt_masks, pred_masks):
     })
 
 
-def evaluate_binary_masks(pred_dir, gt_dir, threshold=127):
+def evaluate_binary_masks(gt_dir, pred_dir, threshold=127):
     dice_scores = []
     f1_scores = []
     precision_scores = []
     recall_scores = []
-
+    print(f"Evaluando máscaras en {gt_dir} y {pred_dir}") 
     pred_files = sorted(os.listdir(pred_dir))
     for file_name in pred_files:
         pred_path = os.path.join(pred_dir, file_name)
-        mask_filename = os.path.basename("_".join(file_name.split("_")[:3]) + "_MASK_" + "_".join(file_name.split("_")[4:]))
+       # print(f"Nombre del archivo de predicción: {file_name}")
+        mask_filename = os.path.basename("_".join(file_name.split("_")[:2]) + "_MASK_" + "_".join(file_name.split("_")[3:]))
+       # print(f"Evaluando máscara: {mask_filename}")
         gt_path = os.path.join(gt_dir, mask_filename)
 
         if not os.path.exists(gt_path):
@@ -109,10 +111,10 @@ def evaluate_binary_masks(pred_dir, gt_dir, threshold=127):
 
     # Resultados promedio en formato compatible
     results = OrderedDict({
-        "seg_dice": 100 * np.mean(dice_scores),
-        "seg_f1": 100 * np.mean(f1_scores),
-        "seg_precision": 100 * np.mean(precision_scores),
-        "seg_recall": 100 * np.mean(recall_scores),
+        "seg_dice":np.mean(dice_scores),
+        "seg_f1": np.mean(f1_scores),
+        "seg_precision": np.mean(precision_scores),
+        "seg_recall": np.mean(recall_scores),
     })
 
     return results

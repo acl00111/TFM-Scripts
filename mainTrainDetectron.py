@@ -20,7 +20,7 @@ from detectron2.evaluation import COCOEvaluator, inference_on_dataset
 from detectron2.data import build_detection_test_loader
 from detectron2.evaluation import DatasetEvaluators, DatasetEvaluator
 from f1diceEvaluator import InstanceSegEvaluator  # Importamos la clase SemSegEvaluator desde f1diceEvaluator.py
-from f1evaluator import evaluate_masksDiceF1
+from f1evaluator import evaluate_masksDiceF1, evaluate_binary_masks
 
 from inference import inference, save_predicted_masks  # Importamos la función de inferencia desde el archivo inference.py
 
@@ -105,18 +105,17 @@ def main():
        # save_predicted_masks(predictor, val_dataset_dicts, f"{path_dir_model}/5000epochsFLAIR101/predicted_masks")
         # evaluamos las métricas del modelo con COCOEvaluator
         cocoevaluator = COCOEvaluator("my_dataset_val", output_dir=f"{path_dir_model}/evaluacion/5000epochsFLAIR101")
-        dicef1evaluator = InstanceSegEvaluator("my_dataset_val", distributed=True)
        # evaluator = DatasetEvaluators([cocoevaluator, dicef1evaluator])
        # evaluator = DatasetEvaluator(dicef1evaluator)
         val_loader = build_detection_test_loader(cfg, "my_dataset_val")
-       # results = inference_on_dataset(predictor.model, val_loader, cocoevaluator)
-        f1dice = evaluate_masksDiceF1(f"{base_path_dir}/output_maskDivided_valFLAIR", f"{path_dir_model}/5000epochsFLAIR101/predicted_masks")
+        results = inference_on_dataset(predictor.model, val_loader, cocoevaluator)
+        f1dice = evaluate_binary_masks(f"{base_path_dir}/output_maskDivided_valFLAIR", f"{path_dir_model}/5000epochsFLAIR101/predicted_masks")
 
-       # results.update(f1dice)
+        results.update(f1dice)
         
-        df = pd.json_normalize(f1dice, sep='_')  # Convertir el resultado a un DataFrame de pandas
+        df = pd.json_normalize(results, sep='_')  # Convertir el resultado a un DataFrame de pandas
         df["configuracion"] = "5000epochsFLAIR101"
-        csvPath = pathlib.Path(f"{path_dir_model}/f1diceresults.csv")
+        csvPath = pathlib.Path(f"{path_dir_model}/results.csv")
         df.to_csv(csvPath, mode="a", header=not csvPath.exists(), index=False)
         
 
