@@ -4,6 +4,8 @@ import random
 import numpy as np
 from detectron2.utils.visualizer import Visualizer, ColorMode
 from matplotlib import pyplot as plt
+from tqdm import tqdm
+from detectron2.structures import Instances
 
 def inference(predictor, val_dataset_dicts, val_metadata, val_mask_dir, output_dir):
     os.makedirs(output_dir, exist_ok=True)
@@ -58,3 +60,26 @@ def inference(predictor, val_dataset_dicts, val_metadata, val_mask_dir, output_d
         output_path = os.path.join(output_dir, f"comparison_{os.path.basename(file_name)}.png")
         plt.savefig(output_path)
         print(f"Imagen guardada en: {output_path}")
+
+
+def save_predicted_masks(predictor, val_dataset_dicts, output_dir):
+    os.makedirs(output_dir, exist_ok=True)
+
+    for d in tqdm(val_dataset_dicts, desc="Generando máscaras predichas"):
+        file_name = d["file_name"]
+        image_id = os.path.splitext(os.path.basename(file_name))[0]
+
+        im = cv2.imread(file_name)
+        outputs = predictor(im)
+        instances: Instances = outputs["instances"].to("cpu")
+
+        # Crear máscara combinada binaria
+        combined_mask = np.zeros(im.shape[:2], dtype=np.uint8)
+        if instances.has("pred_masks"):
+            for mask in instances.pred_masks:
+                combined_mask = np.logical_or(combined_mask, mask.numpy())
+
+        # Guardar máscara binaria en escala de grises (0 o 255)
+        combined_mask = (combined_mask.astype(np.uint8)) * 255
+        out_path = os.path.join(output_dir, f"{image_id}.png")
+        cv2.imwrite(out_path, combined_mask)
