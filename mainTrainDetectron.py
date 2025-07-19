@@ -102,19 +102,19 @@ def main():
         predictor = DefaultPredictor(cfg)
 
       #  inference(predictor, val_dataset_dicts, val_metadata, f"{base_path_dir}/output_maskDivided_valFLAIR", f"{path_dir_model}/5000epochsFLAIR101/output_images")
-        save_predicted_masks(predictor, val_dataset_dicts, f"{path_dir_model}/5000epochsFLAIR101/predicted_masks")
+       # save_predicted_masks(predictor, val_dataset_dicts, f"{path_dir_model}/5000epochsFLAIR101/predicted_masks")
         # evaluamos las métricas del modelo con COCOEvaluator
         cocoevaluator = COCOEvaluator("my_dataset_val", output_dir=f"{path_dir_model}/evaluacion/5000epochsFLAIR101")
         dicef1evaluator = InstanceSegEvaluator("my_dataset_val", distributed=True)
        # evaluator = DatasetEvaluators([cocoevaluator, dicef1evaluator])
        # evaluator = DatasetEvaluator(dicef1evaluator)
         val_loader = build_detection_test_loader(cfg, "my_dataset_val")
-        results = inference_on_dataset(predictor.model, val_loader, cocoevaluator)
+       # results = inference_on_dataset(predictor.model, val_loader, cocoevaluator)
         f1dice = evaluate_masksDiceF1(f"{base_path_dir}/output_maskDivided_valFLAIR", f"{path_dir_model}/5000epochsFLAIR101/predicted_masks")
 
-        results.update(f1dice)
+       # results.update(f1dice)
         
-        df = pd.json_normalize(results, sep='_')  # Convertir el resultado a un DataFrame de pandas
+        df = pd.json_normalize(f1dice, sep='_')  # Convertir el resultado a un DataFrame de pandas
         df["configuracion"] = "5000epochsFLAIR101"
         csvPath = pathlib.Path(f"{path_dir_model}/f1diceresults.csv")
         df.to_csv(csvPath, mode="a", header=not csvPath.exists(), index=False)

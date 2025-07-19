@@ -3,8 +3,8 @@ import numpy as np
 import warnings
 from collections import OrderedDict
 
-def compute_external_metrics(gt_masks, pred_masks, image_names):
-    assert len(gt_masks) == len(pred_masks) == len(image_names)
+def evaluate_masksDiceF1(gt_masks, pred_masks):
+    assert len(gt_masks) == len(pred_masks), f"Las listas de máscaras de ground truth {len(gt_masks)} y predicciones {len(pred_masks)} deben tener la misma longitud."
 
     dice_scores = []
     f1_scores = []
@@ -13,7 +13,7 @@ def compute_external_metrics(gt_masks, pred_masks, image_names):
 
     skipped = 0
 
-    for gt_bin, pred_bin, img_name in zip(gt_masks, pred_masks, image_names):
+    for gt_bin, pred_bin in zip(gt_masks, pred_masks):
         gt_flat = gt_bin.flatten()
         pred_flat = pred_bin.flatten()
 
@@ -42,17 +42,17 @@ def compute_external_metrics(gt_masks, pred_masks, image_names):
     if len(dice_scores) == 0:
         # Evitar división por cero si todas fueron ignoradas
         return OrderedDict({
-            "external_seg_dice": 0.0,
-            "external_seg_f1": 0.0,
-            "external_seg_precision": 0.0,
-            "external_seg_recall": 0.0,
-            "external_skipped_images": skipped,
+            "seg_dice": 0.0,
+            "seg_f1": 0.0,
+            "seg_precision": 0.0,
+            "seg_recall": 0.0,
+            "skipped_images": skipped,
         })
 
     return OrderedDict({
-        "external_seg_dice": 100 * np.mean(dice_scores),
-        "external_seg_f1": 100 * np.mean(f1_scores),
-        "external_seg_precision": 100 * np.mean(precisions),
-        "external_seg_recall": 100 * np.mean(recalls),
-        "external_skipped_images": skipped,
+        "seg_dice": 100 * np.mean(dice_scores),
+        "seg_f1": 100 * np.mean(f1_scores),
+        "seg_precision": 100 * np.mean(precisions),
+        "seg_recall": 100 * np.mean(recalls),
+        "skipped_images": skipped,
     })
