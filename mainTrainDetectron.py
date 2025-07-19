@@ -20,6 +20,7 @@ from detectron2.evaluation import COCOEvaluator, inference_on_dataset
 from detectron2.data import build_detection_test_loader
 from detectron2.evaluation import DatasetEvaluators, DatasetEvaluator
 from f1diceEvaluator import InstanceSegEvaluator  # Importamos la clase SemSegEvaluator desde f1diceEvaluator.py
+from f1evaluator import evaluate_models
 
 from inference import inference  # Importamos la función de inferencia desde el archivo inference.py
 
@@ -109,6 +110,8 @@ def main():
        # evaluator = DatasetEvaluator(dicef1evaluator)
         val_loader = build_detection_test_loader(cfg, "my_dataset_val")
         results = inference_on_dataset(predictor.model, val_loader, dicef1evaluator)
+        model_bests, threshold_bests, f1_bests = evaluate_models(cfg, val_dataset_dicts,["model_final"])
+        print(f"Mejores modelos: {model_bests}, Mejores umbrales: {threshold_bests}, Mejores F1: {f1_bests}")
 
         df = pd.json_normalize(results, sep='_')  # Convertir el resultado a un DataFrame de pandas
         df["configuracion"] = "5000epochsFLAIR101"

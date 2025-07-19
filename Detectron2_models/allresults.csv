@@ -1,0 +1,2 @@
+bbox_AP,bbox_AP50,bbox_AP75,bbox_APs,bbox_APm,bbox_APl,segm_AP,segm_AP50,segm_AP75,segm_APs,segm_APm,segm_APl,instance_seg_Dice-MS lesion,instance_seg_F1-MS lesion,instance_seg_mean_dice,instance_seg_mean_f1,configuracion
+23.58407011198027,53.26483454677493,17.285050213750566,23.812654980448904,,,19.68229569728942,50.718432104556,11.255069017671563,19.68270511898896,,,0.0,0.0,0.0,0.0,5000epochsFLAIR101

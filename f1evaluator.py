@@ -109,6 +109,7 @@ def evaluate_output(eval_dict, outputs, score_thresh_test, iou_thresh=0.5, top_n
             output_boxes_for_cls = output_boxes[output_keep_for_cls]
             result[category_id] = count_confusions(eval_boxes_for_cls, output_boxes_for_cls)
 
+    print(result)
     return result
 
 
@@ -231,6 +232,7 @@ def evaluate_thresh_test(eval_dicts, output_items, score_thresh_test, iou_thresh
         [sum([confusion[cls_idx]['false_positive'] for cls_idx in range(4)]) for confusion in all_confusions])
     false_negatives = sum(
         [sum([confusion[cls_idx]['false_negative'] for cls_idx in range(4)]) for confusion in all_confusions])
+    print(f"Score threshold {score_thresh_test} TP {true_positives}, FP {false_positives}, FN {false_negatives}")
     precision = true_positives / (true_positives + false_positives)
     recall = true_positives / (true_positives + false_negatives)
     return 2 * (precision * recall) / (precision + recall)
