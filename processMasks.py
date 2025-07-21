@@ -35,6 +35,15 @@ def batch_masks_to_single_json(mask_dir, output_json_path):
     mask_files = sorted(mask_dir.glob("*.png"))
 
     coco_output = {
+        "info": {
+        "description": "Dataset for Detectron2 training",
+        "url": "http://example.com",
+        "version": "1.0",
+        "year": 2025,
+        "contributor": "Alba Cano Lara",
+        "date_created": "2025-07-14"
+    },
+    "licenses": [],
         "images": [],
         "annotations": [],
         "categories": [
