@@ -5,7 +5,6 @@ from detectron2.utils.logger import setup_logger
 import numpy as np
 import os, json, cv2, random
 import yaml
-import itertools
 import pandas as pd
 import pathlib
 
@@ -72,57 +71,13 @@ def setup_datasets(nameTrainDataset, nameValDataset):
     
     return train_dataset_dicts, val_dataset_dicts, train_metadata, val_metadata, cfg
 
+
 # Guardamos la configuración en un archivo .yaml
 def save_config(cfg, path_dir):
     print("Guardando la configuración del modelo en un archivo YAML...")
     config_yaml_path = f"{path_dir}/5000epochsFLAIR101/config.yaml"
     with open(config_yaml_path, 'w') as file:
         yaml.dump(cfg, file)
-
-def readConfs(yamlPath):
-    with open("config_space.yaml") as f:
-        param_space = yaml.safe_load(f)["param_space"]
-
-    keys = ["modalidad", "modelo", "flip", "batch_size", "gamma",
-        "base_lr", "weight_decay", "maxiter_steps"]
-
-    combinations = list(itertools.product(*(param_space[k] for k in keys)))
-    return combinations
-
-def trainDetectron(config):
-    setup_logger()
-    if not torch.cuda.is_available():
-        print("CUDA (GPU) no está disponible. Por favor, verifica tu instalación.")
-    else:
-        print(f"CUDA disponible: {torch.cuda.get_device_name(0)}")
-        train_dataset_dicts, val_dataset_dicts, train_metadata, val_metadata, cfg = setup_datasets("my_dataset_train", "my_dataset_val")  # Se configuran los datasets de entrenamiento y validación
-       # os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
-        trainer = DefaultTrainer(cfg) # Se crea un objeto Trainer con la configuración
-        trainer.resume_or_load(resume=False) # cambiar a True para utilizar el último checkpoint y reanudar el entrenamiento
-        
-        trainer.train()  # Se inicia el entrenamiento del modelo
-
-        save_config(cfg, path_dir_model)  # Guardamos la configuración del modelo en un archivo YAML
-
-        # Inferencia y visualización de resultados
-        cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_final.pth")
-        cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7   # ponemos un umbral para el test, puede modificarse
-        predictor = DefaultPredictor(cfg)
-
-        inference(predictor, val_dataset_dicts, val_metadata, f"{base_path_dir}/output_maskDivided_valFLAIR", f"{path_dir_model}/5000epochsFLAIR101/output_images")
-        save_predicted_masks(predictor, val_dataset_dicts, f"{path_dir_model}/5000epochsFLAIR101/predicted_masks")
-        # evaluamos las métricas del modelo con COCOEvaluator
-        cocoevaluator = COCOEvaluator("my_dataset_val", output_dir=f"{path_dir_model}/evaluacion/5000epochsFLAIR101")
-        val_loader = build_detection_test_loader(cfg, "my_dataset_val")
-        results = inference_on_dataset(predictor.model, val_loader, cocoevaluator)
-        f1dice = evaluate_binary_masks(f"{base_path_dir}/output_maskDivided_valFLAIR", f"{path_dir_model}/5000epochsFLAIR101/predicted_masks")
-
-        results.update(f1dice)
-        
-        df = pd.json_normalize(results, sep='_')  # Convertir el resultado a un DataFrame de pandas
-        df["configuracion"] = "5000epochsFLAIR101"
-        csvPath = pathlib.Path(f"{path_dir_model}/results.csv")
-        df.to_csv(csvPath, mode="a", header=not csvPath.exists(), index=False)
 
 
 def main():
@@ -137,19 +92,21 @@ def main():
         trainer = DefaultTrainer(cfg) # Se crea un objeto Trainer con la configuración
         trainer.resume_or_load(resume=False) # cambiar a True para utilizar el último checkpoint y reanudar el entrenamiento
         
-        trainer.train()  # Se inicia el entrenamiento del modelo
+      #  trainer.train()  # Se inicia el entrenamiento del modelo
 
-        save_config(cfg, path_dir_model)  # Guardamos la configuración del modelo en un archivo YAML
+      #  save_config(cfg, path_dir_model)  # Guardamos la configuración del modelo en un archivo YAML
 
         # Inferencia y visualización de resultados
         cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_final.pth")
         cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7   # ponemos un umbral para el test, puede modificarse
         predictor = DefaultPredictor(cfg)
 
-        inference(predictor, val_dataset_dicts, val_metadata, f"{base_path_dir}/output_maskDivided_valFLAIR", f"{path_dir_model}/5000epochsFLAIR101/output_images")
-        save_predicted_masks(predictor, val_dataset_dicts, f"{path_dir_model}/5000epochsFLAIR101/predicted_masks")
+      #  inference(predictor, val_dataset_dicts, val_metadata, f"{base_path_dir}/output_maskDivided_valFLAIR", f"{path_dir_model}/5000epochsFLAIR101/output_images")
+       # save_predicted_masks(predictor, val_dataset_dicts, f"{path_dir_model}/5000epochsFLAIR101/predicted_masks")
         # evaluamos las métricas del modelo con COCOEvaluator
         cocoevaluator = COCOEvaluator("my_dataset_val", output_dir=f"{path_dir_model}/evaluacion/5000epochsFLAIR101")
+       # evaluator = DatasetEvaluators([cocoevaluator, dicef1evaluator])
+       # evaluator = DatasetEvaluator(dicef1evaluator)
         val_loader = build_detection_test_loader(cfg, "my_dataset_val")
         results = inference_on_dataset(predictor.model, val_loader, cocoevaluator)
         f1dice = evaluate_binary_masks(f"{base_path_dir}/output_maskDivided_valFLAIR", f"{path_dir_model}/5000epochsFLAIR101/predicted_masks")
