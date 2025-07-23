@@ -69,7 +69,8 @@ def setup_datasets(nameTrainDataset, nameValDataset):
     cfg.INPUT.RANDOM_FLIP = "vertical"
     cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 256
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1  # Tenemos tan solo la clase Lesion, no se tiene en cuenta el fondo de la imagen
-    
+    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7  # ponemos un umbral para el test, puede modificarse
+
     return train_dataset_dicts, val_dataset_dicts, train_metadata, val_metadata, cfg
 
 # Guardamos la configuración en un archivo .yaml
@@ -87,7 +88,9 @@ def readConfs(yamlPath):
         "base_lr", "weight_decay", "maxiter_steps"]
 
     combinations = list(itertools.product(*(param_space[k] for k in keys)))
-    return combinations
+
+    list_of_dicts = [dict(zip(keys, comb)) for comb in combinations]
+    return list_of_dicts
 
 def trainDetectron(config):
     setup_logger()
@@ -106,7 +109,6 @@ def trainDetectron(config):
 
         # Inferencia y visualización de resultados
         cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_final.pth")
-        cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7   # ponemos un umbral para el test, puede modificarse
         predictor = DefaultPredictor(cfg)
 
         inference(predictor, val_dataset_dicts, val_metadata, f"{base_path_dir}/output_maskDivided_valFLAIR", f"{path_dir_model}/5000epochsFLAIR101/output_images")
