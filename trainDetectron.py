@@ -25,7 +25,12 @@ from f1evaluator import evaluate_binary_masks
 from inference import inference, save_predicted_masks  # Importamos la función de inferencia desde el archivo inference.py
 
 
-
+# Guardamos la configuración en un archivo .yaml
+def save_config(cfg, path_dir):
+    print("Guardando la configuración del modelo en un archivo YAML...")
+    config_yaml_path = f"{path_dir}/config.yaml"
+    with open(config_yaml_path, 'w') as file:
+        yaml.dump(cfg, file)
 
 
 def run_training_pipeline(config_dict):
@@ -54,19 +59,32 @@ def run_training_pipeline(config_dict):
 
     register_coco_instances(train_dataset_name, {}, train_json, train_img_dir)
     register_coco_instances(val_dataset_name, {}, val_json, val_img_dir)
+    train_metadata = MetadataCatalog.get(train_dataset_name)
+    train_dataset_dicts = DatasetCatalog.get(train_dataset_name)
+    val_metadata = MetadataCatalog.get(val_dataset_name)
+    val_dataset_dicts = DatasetCatalog.get(val_dataset_name)
 
     # Config
     cfg = get_cfg()
     cfg.OUTPUT_DIR = output_dir
-    cfg.merge_from_file(model_zoo.get_config_file(config_dict['modelo']))
+    cfg.merge_from_file(model_zoo.get_config_file(f"COCO-InstanceSegmentation/{config_dict['modelo']}"))
     cfg.DATASETS.TRAIN = (train_dataset_name,)
-    cfg.DATASETS.TEST = (val_dataset_name,)
+    cfg.DATASETS.TEST = ()
+    cfg.DATALOADER.NUM_WORKERS = 2
     cfg.SOLVER.BASE_LR = config_dict['base_lr']
     cfg.SOLVER.MAX_ITER = config_dict['maxiter_steps']
     cfg.SOLVER.IMS_PER_BATCH = config_dict['batch_size']
+    cfg.SOLVER.STEPS = [2500,]
+    cfg.INPUT.MIN_SIZE_TRAIN = (512, 640) # Redimensionamiento de las imágenes de entrenamiento
+    cfg.INPUT.MAX_SIZE_TRAIN = 1333        
+    cfg.INPUT.MIN_SIZE_TEST  = 512
+    cfg.INPUT.MAX_SIZE_TEST  = 1333
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1
+    cfg.INPUT.MIN_SIZE_TRAIN_SAMPLING = "choice" 
+    # Mode for flipping images used in data augmentation during training
+    # choose one of ["horizontal, "vertical", "none"]
     cfg.INPUT.RANDOM_FLIP = config_dict['flip']
-    cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(config_dict['modelo'])
+    cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(f"COCO-InstanceSegmentation/{config_dict['modelo']}")
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7
 
     # Entrenamiento
@@ -74,8 +92,14 @@ def run_training_pipeline(config_dict):
     trainer.resume_or_load(resume=False)
     trainer.train()
 
-    # Evaluación
+    save_config(cfg, output_dir)  # Guardamos la configuración del modelo en un archivo YAML
+
+    # Inferencia y visualización de resultados
+    cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_final.pth")
     predictor = DefaultPredictor(cfg)
+
+    # Evaluación
+    inference(predictor, val_dataset_dicts, val_metadata, f"{base_path_dir}/output_maskDivided_valFLAIR", f"{path_dir_model}/5000epochsFLAIR101/output_images")
     val_loader = build_detection_test_loader(cfg, val_dataset_name)
     coco_eval = COCOEvaluator(val_dataset_name, output_dir=os.path.join(output_dir, "eval"))
     results = inference_on_dataset(predictor.model, val_loader, coco_eval)

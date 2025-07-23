@@ -9,8 +9,8 @@ from trainDetectron import run_training_pipeline
 def main():
     ind_params = {
         'modalidad': 'FLAIR',
-        'modelo': 'mask_rcnn_R_101_FPN_3x',
-        'flip': False,
+        'modelo': 'mask_rcnn_R_101_FPN_3x.yaml',
+        'flip': 'vertical',
         'batch_size': 2,
         'gamma': 0.05,
         'base_lr': 0.001,
