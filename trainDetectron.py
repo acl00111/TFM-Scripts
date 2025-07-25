@@ -90,7 +90,7 @@ def run_training_pipeline(config_dict):
     # Entrenamiento
     trainer = DefaultTrainer(cfg)
     trainer.resume_or_load(resume=False)
-    trainer.train()
+   # trainer.train()
 
     save_config(cfg, output_dir)  # Guardamos la configuración del modelo en un archivo YAML
 
@@ -105,7 +105,7 @@ def run_training_pipeline(config_dict):
     results = inference_on_dataset(predictor.model, val_loader, coco_eval)
 
     # Máscaras y métricas externas
-    save_predicted_masks(predictor, DatasetCatalog.get(val_dataset_name), os.path.join(output_dir, "predicted_masks"))
+   # save_predicted_masks(predictor, DatasetCatalog.get(val_dataset_name), os.path.join(output_dir, "predicted_masks"))
     f1_metrics = evaluate_binary_masks(
         f"{base_path_dir}/output_maskDivided_val{config_dict['modalidad']}", 
         f"{output_dir}/predicted_masks"

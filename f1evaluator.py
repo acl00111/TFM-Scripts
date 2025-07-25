@@ -2,7 +2,7 @@ import os
 import numpy as np
 import cv2
 from collections import OrderedDict
-from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 import warnings
 
 def evaluate_masksDiceF1(gt_masks, pred_masks):
@@ -65,6 +65,7 @@ def evaluate_binary_masks(gt_dir, pred_dir, threshold=127):
     f1_scores = []
     precision_scores = []
     recall_scores = []
+    accuracy_scores = []
     print(f"Evaluando máscaras en {gt_dir} y {pred_dir}") 
     pred_files = sorted(os.listdir(pred_dir))
     for file_name in pred_files:
@@ -103,11 +104,13 @@ def evaluate_binary_masks(gt_dir, pred_dir, threshold=127):
             f1 = f1_score(gt_bin, pred_bin, zero_division=0)
             precision = precision_score(gt_bin, pred_bin, zero_division=0)
             recall = recall_score(gt_bin, pred_bin, zero_division=0)
+            accuracy = accuracy_score(gt_bin, pred_bin)
 
         dice_scores.append(dice)
         f1_scores.append(f1)
         precision_scores.append(precision)
         recall_scores.append(recall)
+        accuracy_scores.append(accuracy)
 
     # Resultados promedio en formato compatible
     results = OrderedDict({
@@ -115,6 +118,7 @@ def evaluate_binary_masks(gt_dir, pred_dir, threshold=127):
         "seg_f1": np.mean(f1_scores),
         "seg_precision": np.mean(precision_scores),
         "seg_recall": np.mean(recall_scores),
+        "seg_accuracy": np.mean(accuracy_scores),
     })
 
     return results
