@@ -15,7 +15,8 @@ def main():
         'gamma': 0.05,
         'base_lr': 0.001,
         'weight_decay': 0.0001,
-        'maxiter_steps': 5000
+        'maxiter': 5000,
+        'steps': [2500]
     }
 
     run_training_pipeline(ind_params)

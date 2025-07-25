@@ -41,7 +41,7 @@ def run_training_pipeline(config_dict):
     # Construir nombre único
     base_path_dir = '/mnt/Data1/MSLesSeg-Dataset'
     path_dir_model = "/home/albacano/TFM-Scripts/Detectron2_models"
-    name = f"{config_dict['modelo']}_{config_dict['modalidad']}_{config_dict['base_lr']}_{config_dict['maxiter_steps']}"
+    name = f"{config_dict['modelo']}_{config_dict['modalidad']}_{config_dict['base_lr']}_{config_dict['maxiter']}_{config_dict['flip']}_{config_dict['batch_size']}_{config_dict['steps']}"
 
     path_dir_train = base_path_dir + f"/outputDivided_train{config_dict['modalidad']}"
     path_dir_val = base_path_dir + f"/outputDivided_val{config_dict['modalidad']}"
@@ -68,13 +68,14 @@ def run_training_pipeline(config_dict):
     cfg = get_cfg()
     cfg.OUTPUT_DIR = output_dir
     cfg.merge_from_file(model_zoo.get_config_file(f"COCO-InstanceSegmentation/{config_dict['modelo']}"))
+    cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(f"COCO-InstanceSegmentation/{config_dict['modelo']}")
     cfg.DATASETS.TRAIN = (train_dataset_name,)
     cfg.DATASETS.TEST = ()
     cfg.DATALOADER.NUM_WORKERS = 2
     cfg.SOLVER.BASE_LR = config_dict['base_lr']
-    cfg.SOLVER.MAX_ITER = config_dict['maxiter_steps']
+    cfg.SOLVER.MAX_ITER = config_dict['maxiter']
     cfg.SOLVER.IMS_PER_BATCH = config_dict['batch_size']
-    cfg.SOLVER.STEPS = [2500,]
+    cfg.SOLVER.STEPS = config_dict['steps']
     cfg.INPUT.MIN_SIZE_TRAIN = (512, 640) # Redimensionamiento de las imágenes de entrenamiento
     cfg.INPUT.MAX_SIZE_TRAIN = 1333        
     cfg.INPUT.MIN_SIZE_TEST  = 512
@@ -84,7 +85,6 @@ def run_training_pipeline(config_dict):
     # Mode for flipping images used in data augmentation during training
     # choose one of ["horizontal, "vertical", "none"]
     cfg.INPUT.RANDOM_FLIP = config_dict['flip']
-    cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(f"COCO-InstanceSegmentation/{config_dict['modelo']}")
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7
 
     # Entrenamiento
@@ -99,7 +99,7 @@ def run_training_pipeline(config_dict):
     predictor = DefaultPredictor(cfg)
 
     # Evaluación
-    inference(predictor, val_dataset_dicts, val_metadata, f"{base_path_dir}/output_maskDivided_valFLAIR", f"{path_dir_model}/5000epochsFLAIR101/output_images")
+    inference(predictor, val_dataset_dicts, val_metadata, f"{base_path_dir}/output_maskDivided_val{config_dict['modalidad']}", f"{output_dir}/output_images")
     val_loader = build_detection_test_loader(cfg, val_dataset_name)
     coco_eval = COCOEvaluator(val_dataset_name, output_dir=os.path.join(output_dir, "eval"))
     results = inference_on_dataset(predictor.model, val_loader, coco_eval)
