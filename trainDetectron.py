@@ -117,3 +117,5 @@ def run_training_pipeline(config_dict):
     df = pd.json_normalize(results, sep='_')
     results_path = pathlib.Path(f"{path_dir_model}/resultados_finales.csv")
     df.to_csv(results_path, mode="a", header=not results_path.exists(), index=False)
+
+    return results["fitness"]

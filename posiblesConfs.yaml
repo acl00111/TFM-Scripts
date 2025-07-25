@@ -13,9 +13,8 @@ param_space:
   maxiter_steps: 
     - { max_iter: 2000,  steps: [1000] }
     - { max_iter: 5000,  steps: [2500] }
-    - { max_iter: 10000, steps: [5000] }
   base_lr:             [0.00025]
   gamma:               [0.1]
-  batch_size:          [2, 8, 16]
+  batch_size:          [2, 8, 16, 32]
   flip:                [horizontal, vertical, none]
   weight_decay:        [0.0001]
