@@ -6,6 +6,7 @@ import pandas as pd
 import pathlib
 import hashlib
 import random
+import time
 from trainDetectron import run_training_pipeline
 from individuo import Individuo
 
@@ -171,6 +172,8 @@ def main():
         'steps': [2500]
     } """
 
+    tiempo_inicio = time.time()
+    print(f"Inicio del script: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tiempo_inicio))}")
     #run_training_pipeline(ind_params)
     yaml_path = '/home/albacano/TFM-Scripts/Detectron2_models/posiblesConfs.yaml'
     list_of_dicts = readConfs(yaml_path)
@@ -196,7 +199,10 @@ def main():
         guardar_usados(usados, f"/home/albacano/TFM-Scripts/AE/usados_iter_{i+1}.json")
 
     mejor_individuo = max(poblacion, key=lambda ind: ind.fitness)
+    tiempo_fin = time.time()
     print(f"Mejor individuo: {mejor_individuo} con fitness {mejor_individuo.fitness}")
+    print(f"Fin del script: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tiempo_fin))}")
+    print(f"Tiempo total de ejecución: {tiempo_fin - tiempo_inicio:.2f} segundos")
     
 
 if __name__ == "__main__":
