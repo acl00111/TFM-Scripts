@@ -21,6 +21,7 @@ from detectron2.evaluation import COCOEvaluator, inference_on_dataset
 from detectron2.data import build_detection_test_loader
 from detectron2.evaluation import DatasetEvaluators, DatasetEvaluator
 from f1evaluator import evaluate_binary_masks
+from datetime import datetime
 
 from inference import inference, save_predicted_masks  # Importamos la función de inferencia desde el archivo inference.py
 
@@ -41,7 +42,8 @@ def run_training_pipeline(config_dict):
     # Construir nombre único
     base_path_dir = '/mnt/Data1/MSLesSeg-Dataset'
     path_dir_model = "/home/albacano/TFM-Scripts/Detectron2_models"
-    name = f"{config_dict['modelo']}_{config_dict['modalidad']}_{config_dict['base_lr']}_{config_dict['maxiter']}_{config_dict['flip']}_{config_dict['batch_size']}_{config_dict['steps']}"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    name = f"{config_dict['modelo']}_{config_dict['modalidad']}_{config_dict['maxiter']}_{config_dict['flip']}_{config_dict['batch_size']}_{timestamp}"
 
     path_dir_train = base_path_dir + f"/outputDivided_train{config_dict['modalidad']}"
     path_dir_val = base_path_dir + f"/outputDivided_val{config_dict['modalidad']}"
@@ -76,10 +78,10 @@ def run_training_pipeline(config_dict):
     cfg.SOLVER.MAX_ITER = config_dict['maxiter']
     cfg.SOLVER.IMS_PER_BATCH = config_dict['batch_size']
     cfg.SOLVER.STEPS = config_dict['steps']
-    cfg.INPUT.MIN_SIZE_TRAIN = (512, 640) # Redimensionamiento de las imágenes de entrenamiento
-    cfg.INPUT.MAX_SIZE_TRAIN = 1333        
-    cfg.INPUT.MIN_SIZE_TEST  = 512
-    cfg.INPUT.MAX_SIZE_TEST  = 1333
+   # cfg.INPUT.MIN_SIZE_TRAIN = (512, 640) # Redimensionamiento de las imágenes de entrenamiento
+   # cfg.INPUT.MAX_SIZE_TRAIN = 1333        
+   # cfg.INPUT.MIN_SIZE_TEST  = 512
+   # cfg.INPUT.MAX_SIZE_TEST  = 1333
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1
     cfg.INPUT.MIN_SIZE_TRAIN_SAMPLING = "choice" 
     # Mode for flipping images used in data augmentation during training
@@ -90,7 +92,7 @@ def run_training_pipeline(config_dict):
     # Entrenamiento
     trainer = DefaultTrainer(cfg)
     trainer.resume_or_load(resume=False)
-   # trainer.train()
+    trainer.train()
 
     save_config(cfg, output_dir)  # Guardamos la configuración del modelo en un archivo YAML
 
@@ -105,7 +107,7 @@ def run_training_pipeline(config_dict):
     results = inference_on_dataset(predictor.model, val_loader, coco_eval)
 
     # Máscaras y métricas externas
-   # save_predicted_masks(predictor, DatasetCatalog.get(val_dataset_name), os.path.join(output_dir, "predicted_masks"))
+    save_predicted_masks(predictor, DatasetCatalog.get(val_dataset_name), os.path.join(output_dir, "predicted_masks"))
     f1_metrics = evaluate_binary_masks(
         f"{base_path_dir}/output_maskDivided_val{config_dict['modalidad']}", 
         f"{output_dir}/predicted_masks"
@@ -117,5 +119,7 @@ def run_training_pipeline(config_dict):
     df = pd.json_normalize(results, sep='_')
     results_path = pathlib.Path(f"{path_dir_model}/resultados_finales.csv")
     df.to_csv(results_path, mode="a", header=not results_path.exists(), index=False)
+    
+    torch.cuda.empty_cache()  # Limpiar caché de CUDA
 
-    return results["fitness"]
+    return results["seg_f1"]

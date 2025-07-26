@@ -19,7 +19,14 @@ def readConfs(yamlPath):
 
     combinations = list(itertools.product(*(param_space[k] for k in keys)))
 
-    list_of_dicts = [dict(zip(keys, comb)) for comb in combinations]
+    list_of_dicts = []
+
+    for combination in combinations:
+        params = dict(zip(keys, combination))
+        maxiter_steps = params.pop("maxiter_steps")
+        params.update(maxiter_steps)
+        list_of_dicts.append(params)
+
     return list_of_dicts
 
 def get_hash(config):
@@ -116,19 +123,16 @@ def mutar_hijo(hijo, mutation_rate=0.1):
                     hijo[key] = 'FLAIR'
             elif key == 'modelo':
                 print(f"Mutando {key} del hijo: {hijo[key]}")
-                hijo[key] = random.choice(['mask_rcnn_R_50_FPN_1x.yaml',
-                        'mask_rcnn_R_50_FPN_3x.yaml',
+                hijo[key] = random.choice(['mask_rcnn_R_50_FPN_3x.yaml',
                         'mask_rcnn_R_101_FPN_3x.yaml',
-                        'mask_rcnn_R_50_C4_1x.yaml',
                         'mask_rcnn_R_50_C4_3x.yaml', 
                         'mask_rcnn_R_101_C4_3x.yaml',
-                        'mask_rcnn_R_50_DC5_1x.yaml',
                         'mask_rcnn_R_50_DC5_3x.yaml',
                         'mask_rcnn_R_101_DC5_3x.yaml',
                         'mask_rcnn_1_101_32x8d_FPN_3x.yaml'])
             elif key == 'batch_size':
                 print(f"Mutando {key} del hijo: {hijo[key]}")
-                hijo[key] = random.choice([2, 8, 16, 32])
+                hijo[key] = random.choice([2, 4])
             else:
                 print(f"Mutando {key} del hijo: {hijo[key]}")
                 hijo[key] *= random.uniform(0.9, 1.1)  # Pequeña variación
@@ -151,7 +155,7 @@ def reemplazar_individuo(poblacion, hijo, num_reemplazables=5):
 def guardar_poblacion(poblacion, path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
-        json.dump([ind.to_dict() for ind in poblacion], f, indent=2)
+        json.dump([ind.as_dict() for ind in poblacion], f, indent=2)
 
 def guardar_usados(usados, path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -175,13 +179,13 @@ def main():
     tiempo_inicio = time.time()
     print(f"Inicio del script: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tiempo_inicio))}")
     #run_training_pipeline(ind_params)
-    yaml_path = '/home/albacano/TFM-Scripts/Detectron2_models/posiblesConfs.yaml'
+    yaml_path = '/home/albacano/TFM-Scripts/posiblesConfs.yaml'
     list_of_dicts = readConfs(yaml_path)
 
     # Inicialización Población
-    poblacion, usados = inicializar_poblacion(list_of_dicts, size=20)
+    poblacion, usados = inicializar_poblacion(list_of_dicts, size=10)
     iteraciones = 10
-    evaluar_poblacion(poblacion)
+    evaluar_poblacion(poblacion, usados)
     for i in range(iteraciones):
         print(f"Iteración {i+1} de {iteraciones}")
         padres = seleccionar_padres(poblacion, p=2)
@@ -194,7 +198,7 @@ def main():
         else:
             hijo.fitness = run_training_pipeline(hijo.as_dict())
             usados[hash] = hijo.fitness
-        reemplazar_individuo(poblacion, hijo)
+        reemplazar_individuo(poblacion, hijo, 3)
         guardar_poblacion(poblacion, f"/home/albacano/TFM-Scripts/AE/poblacion_iter_{i+1}.json")
         guardar_usados(usados, f"/home/albacano/TFM-Scripts/AE/usados_iter_{i+1}.json")
 
