@@ -7,6 +7,7 @@ import pathlib
 import hashlib
 import random
 import time
+import torch
 from trainDetectron import run_training_pipeline
 from individuo import Individuo
 
@@ -80,8 +81,14 @@ def evaluar_poblacion(poblacion, usados):
     """
     for individuo in poblacion:
         print(f"Evaluando {individuo}")
-        individuo.fitness = run_training_pipeline(individuo.as_dict())
-        usados[get_hash(individuo.as_dict())] = individuo.fitness
+        try:
+            individuo.fitness = run_training_pipeline(individuo.as_dict()) 
+            usados[get_hash(individuo.as_dict())] = individuo.fitness 
+        except RuntimeError as e:
+            print(f"Error al evaluar {individuo}: {e}")
+            individuo.fitness = 0.0
+            torch.cuda.empty_cache()  # Limpiar caché de CUDA en caso de error
+        
         print(f"Fitness de {individuo}: {individuo.fitness}")
 
 def seleccionar_padres(poblacion, p=2, k=3):
@@ -196,8 +203,13 @@ def main():
             print(f"Hijo ya evaluado: {hash}, saltando...")
             hijo.fitness = usados[hash]
         else:
-            hijo.fitness = run_training_pipeline(hijo.as_dict())
-            usados[hash] = hijo.fitness
+            try:
+                hijo.fitness = run_training_pipeline(hijo.as_dict())
+                usados[hash] = hijo.fitness
+            except RuntimeError as e:
+                print(f"Error al evaluar el hijo: {e}")
+                hijo.fitness = 0.0
+                torch.cuda.empty_cache()
         reemplazar_individuo(poblacion, hijo, 3)
         guardar_poblacion(poblacion, f"/home/albacano/TFM-Scripts/AE/poblacion_iter_{i+1}.json")
         guardar_usados(usados, f"/home/albacano/TFM-Scripts/AE/usados_iter_{i+1}.json")

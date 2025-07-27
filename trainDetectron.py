@@ -78,10 +78,10 @@ def run_training_pipeline(config_dict):
     cfg.SOLVER.MAX_ITER = config_dict['maxiter']
     cfg.SOLVER.IMS_PER_BATCH = config_dict['batch_size']
     cfg.SOLVER.STEPS = config_dict['steps']
-   # cfg.INPUT.MIN_SIZE_TRAIN = (512, 640) # Redimensionamiento de las imágenes de entrenamiento
-   # cfg.INPUT.MAX_SIZE_TRAIN = 1333        
-   # cfg.INPUT.MIN_SIZE_TEST  = 512
-   # cfg.INPUT.MAX_SIZE_TEST  = 1333
+    cfg.INPUT.MIN_SIZE_TRAIN = 364 # Redimensionamiento de las imágenes de entrenamiento
+    cfg.INPUT.MAX_SIZE_TRAIN = 436        
+    cfg.INPUT.MIN_SIZE_TEST  = 364
+    cfg.INPUT.MAX_SIZE_TEST  = 436
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1
     cfg.INPUT.MIN_SIZE_TRAIN_SAMPLING = "choice" 
     # Mode for flipping images used in data augmentation during training
