@@ -1,0 +1,132 @@
+[
+  {
+    "modalidad": "FLAIR",
+    "modelo": "mask_rcnn_R_101_C4_3x.yaml",
+    "flip": "none",
+    "batch_size": 4,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 5000,
+    "steps": [
+      2500
+    ]
+  },
+  {
+    "modalidad": "RGB",
+    "modelo": "mask_rcnn_R_50_FPN_3x.yaml",
+    "flip": "none",
+    "batch_size": 4,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 5000,
+    "steps": [
+      2500
+    ]
+  },
+  {
+    "modalidad": "RGB",
+    "modelo": "mask_rcnn_R_50_DC5_3x.yaml",
+    "flip": "horizontal",
+    "batch_size": 2,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 5000,
+    "steps": [
+      2500
+    ]
+  },
+  {
+    "modalidad": "RGB",
+    "modelo": "mask_rcnn_R_50_DC5_3x.yaml",
+    "flip": "horizontal",
+    "batch_size": 2,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 5000,
+    "steps": [
+      2500
+    ]
+  },
+  {
+    "modalidad": "FLAIR",
+    "modelo": "mask_rcnn_X_101_32x8d_FPN_3x.yaml",
+    "flip": "vertical",
+    "batch_size": 4,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 2000,
+    "steps": [
+      1000
+    ]
+  },
+  {
+    "modalidad": "FLAIR",
+    "modelo": "mask_rcnn_X_101_32x8d_FPN_3x.yaml",
+    "flip": "horizontal",
+    "batch_size": 2,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 2000,
+    "steps": [
+      1000
+    ]
+  },
+  {
+    "modalidad": "FLAIR",
+    "modelo": "mask_rcnn_R_50_C4_3x.yaml",
+    "flip": "vertical",
+    "batch_size": 2,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 2000,
+    "steps": [
+      1000
+    ]
+  },
+  {
+    "modalidad": "RGB",
+    "modelo": "mask_rcnn_R_101_FPN_3x.yaml",
+    "flip": "vertical",
+    "batch_size": 4,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 2000,
+    "steps": [
+      1000
+    ]
+  },
+  {
+    "modalidad": "RGB",
+    "modelo": "mask_rcnn_R_101_C4_3x.yaml",
+    "flip": "none",
+    "batch_size": 2,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 2000,
+    "steps": [
+      1000
+    ]
+  },
+  {
+    "modalidad": "RGB",
+    "modelo": "mask_rcnn_R_101_DC5_3x.yaml",
+    "flip": "none",
+    "batch_size": 2,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 2000,
+    "steps": [
+      1000
+    ]
+  }
+]

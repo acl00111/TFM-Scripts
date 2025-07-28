@@ -136,7 +136,7 @@ def mutar_hijo(hijo, mutation_rate=0.1):
                         'mask_rcnn_R_101_C4_3x.yaml',
                         'mask_rcnn_R_50_DC5_3x.yaml',
                         'mask_rcnn_R_101_DC5_3x.yaml',
-                        'mask_rcnn_1_101_32x8d_FPN_3x.yaml'])
+                        'mask_rcnn_X_101_32x8d_FPN_3x.yaml'])
             elif key == 'batch_size':
                 print(f"Mutando {key} del hijo: {hijo[key]}")
                 hijo[key] = random.choice([2, 4])
