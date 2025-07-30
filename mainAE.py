@@ -131,18 +131,13 @@ def mutar_hijo(hijo, mutation_rate=0.1):
             elif key == 'modelo':
                 print(f"Mutando {key} del hijo: {hijo[key]}")
                 hijo[key] = random.choice(['mask_rcnn_R_50_FPN_3x.yaml',
-                        'mask_rcnn_R_101_FPN_3x.yaml',
-                        'mask_rcnn_R_50_C4_3x.yaml', 
-                        'mask_rcnn_R_101_C4_3x.yaml',
-                        'mask_rcnn_R_50_DC5_3x.yaml',
-                        'mask_rcnn_R_101_DC5_3x.yaml',
-                        'mask_rcnn_X_101_32x8d_FPN_3x.yaml'])
+                        'mask_rcnn_R_101_FPN_3x.yaml'])
             elif key == 'batch_size':
                 print(f"Mutando {key} del hijo: {hijo[key]}")
-                hijo[key] = random.choice([2, 4])
+                hijo[key] = random.choice([4, 6, 8])
             else:
                 print(f"Mutando {key} del hijo: {hijo[key]}")
-                hijo[key] *= random.uniform(0.9, 1.1)  # Pequeña variación
+                hijo[key] = float(hijo[key]) * random.uniform(0.9, 1.1)  # Pequeña variación
     print(f"Hijo mutado: {hijo}")
 
 def reemplazar_individuo(poblacion, hijo, num_reemplazables=5):
@@ -186,12 +181,12 @@ def main():
     tiempo_inicio = time.time()
     print(f"Inicio del script: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tiempo_inicio))}")
     #run_training_pipeline(ind_params)
-    yaml_path = '/home/albacano/TFM-Scripts/posiblesConfs.yaml'
+    yaml_path = '/home/albacano/TFM-Scripts/extendedConfsFPN.yaml'
     list_of_dicts = readConfs(yaml_path)
 
     # Inicialización Población
     poblacion, usados = inicializar_poblacion(list_of_dicts, size=10)
-    iteraciones = 10
+    iteraciones = 20
     evaluar_poblacion(poblacion, usados)
     for i in range(iteraciones):
         print(f"Iteración {i+1} de {iteraciones}")

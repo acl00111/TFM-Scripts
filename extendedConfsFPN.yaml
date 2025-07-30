@@ -1,0 +1,14 @@
+param_space:
+  modalidad:           [FLAIR, RGB]
+  modelo:              [mask_rcnn_R_50_FPN_3x.yaml,
+                        mask_rcnn_R_101_FPN_3x.yaml]
+  maxiter_steps: 
+    - { maxiter: 5000,  steps: [2500] }
+    - { maxiter: 7000, steps: [3500] }
+    - { maxiter: 10000, steps: [5000] }
+    - { maxiter: 15000, steps: [7500] }
+  base_lr:             [0.001]
+  gamma:               [0.5]
+  batch_size:          [4, 6, 8]
+  flip:                [horizontal, vertical, none]
+  weight_decay:        [0.0001]

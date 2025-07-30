@@ -117,7 +117,7 @@ def run_training_pipeline(config_dict):
     # Guardar resultados
     results["configuracion"] = name
     df = pd.json_normalize(results, sep='_')
-    results_path = pathlib.Path(f"{path_dir_model}/resultados_finales.csv")
+    results_path = pathlib.Path(f"{path_dir_model}/resultados_finalesFPN.csv")
     df.to_csv(results_path, mode="a", header=not results_path.exists(), index=False)
     
     torch.cuda.empty_cache()  # Limpiar caché de CUDA
