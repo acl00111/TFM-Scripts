@@ -135,6 +135,12 @@ def mutar_hijo(hijo, mutation_rate=0.1):
             elif key == 'batch_size':
                 print(f"Mutando {key} del hijo: {hijo[key]}")
                 hijo[key] = random.choice([4, 6, 8])
+            elif key == 'maxiter':
+                print(f"Mutando {key} del hijo: {hijo[key]}")
+                hijo[key] = random.choice([5000, 10000, 15000]) + 2000
+            elif key == 'steps':
+                print(f"Mutando {key} del hijo: {hijo[key]}")
+                hijo[key] = [random.choice([0, 1000, 2500, 5000, 7500])]
             else:
                 print(f"Mutando {key} del hijo: {hijo[key]}")
                 hijo[key] = float(hijo[key]) * random.uniform(0.9, 1.1)  # Pequeña variación

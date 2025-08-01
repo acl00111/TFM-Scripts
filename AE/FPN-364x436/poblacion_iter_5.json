@@ -1,0 +1,132 @@
+[
+  {
+    "modalidad": "FLAIR",
+    "modelo": "mask_rcnn_R_101_FPN_3x.yaml",
+    "flip": "vertical",
+    "batch_size": 4,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 10000,
+    "steps": [
+      5000
+    ]
+  },
+  {
+    "modalidad": "FLAIR",
+    "modelo": "mask_rcnn_R_101_FPN_3x.yaml",
+    "flip": "horizontal",
+    "batch_size": 4,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 10000,
+    "steps": [
+      5000
+    ]
+  },
+  {
+    "modalidad": "FLAIR",
+    "modelo": "mask_rcnn_R_101_FPN_3x.yaml",
+    "flip": "none",
+    "batch_size": 4,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 10000,
+    "steps": [
+      5000
+    ]
+  },
+  {
+    "modalidad": "FLAIR",
+    "modelo": "mask_rcnn_R_101_FPN_3x.yaml",
+    "flip": "vertical",
+    "batch_size": 4,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 17000,
+    "steps": [
+      5000
+    ]
+  },
+  {
+    "modalidad": "FLAIR",
+    "modelo": "mask_rcnn_R_101_FPN_3x.yaml",
+    "flip": "none",
+    "batch_size": 8,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 15000,
+    "steps": [
+      7500
+    ]
+  },
+  {
+    "modalidad": "FLAIR",
+    "modelo": "mask_rcnn_R_50_FPN_3x.yaml",
+    "flip": "horizontal",
+    "batch_size": 8,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 10000,
+    "steps": [
+      5000
+    ]
+  },
+  {
+    "modalidad": "FLAIR",
+    "modelo": "mask_rcnn_R_50_FPN_3x.yaml",
+    "flip": "none",
+    "batch_size": 4,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 10000,
+    "steps": [
+      5000
+    ]
+  },
+  {
+    "modalidad": "FLAIR",
+    "modelo": "mask_rcnn_R_101_FPN_3x.yaml",
+    "flip": "horizontal",
+    "batch_size": 8,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.00010714560384625865,
+    "maxiter": 10000,
+    "steps": [
+      5000
+    ]
+  },
+  {
+    "modalidad": "RGB",
+    "modelo": "mask_rcnn_R_101_FPN_3x.yaml",
+    "flip": "vertical",
+    "batch_size": 8,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 7000,
+    "steps": [
+      3500
+    ]
+  },
+  {
+    "modalidad": "RGB",
+    "modelo": "mask_rcnn_R_101_FPN_3x.yaml",
+    "flip": "none",
+    "batch_size": 4,
+    "gamma": 0.5,
+    "base_lr": 0.001,
+    "weight_decay": 0.0001,
+    "maxiter": 10000,
+    "steps": [
+      5000
+    ]
+  }
+]
