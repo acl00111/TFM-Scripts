@@ -11,6 +11,6 @@ param_space:
     - { maxiter: 15000, steps: [7500] }
   base_lr:             [0.001]
   gamma:               [0.5]
-  batch_size:          [2]
+  batch_size:          [2, 4]
   flip:                [horizontal, vertical, none]
   weight_decay:        [0.0001]

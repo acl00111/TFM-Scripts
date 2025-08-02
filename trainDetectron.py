@@ -78,11 +78,13 @@ def run_training_pipeline(config_dict):
     cfg.SOLVER.MAX_ITER = config_dict['maxiter']
     cfg.SOLVER.IMS_PER_BATCH = config_dict['batch_size']
     cfg.SOLVER.STEPS = config_dict['steps']
-    cfg.INPUT.MIN_SIZE_TRAIN = 512 # Redimensionamiento de las imágenes de entrenamiento
-    cfg.INPUT.MAX_SIZE_TRAIN = 1024    
-    cfg.INPUT.MIN_SIZE_TEST  = 512
+    cfg.INPUT.MIN_SIZE_TRAIN = 364 # Redimensionamiento de las imágenes de entrenamiento
+    cfg.INPUT.MAX_SIZE_TRAIN = 364    
+    cfg.INPUT.MIN_SIZE_TEST  = 364
+    cfg.INPUT.MAX_SIZE_TEST  = 364
+    cfg.SOLVER.GAMMA = config_dict['gamma']
+    cfg.SOLVER.WEIGHT_DECAY = config_dict['weight_decay']
     cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 512
-    cfg.INPUT.MAX_SIZE_TEST  = 1024
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1
     cfg.INPUT.MIN_SIZE_TRAIN_SAMPLING = "choice" 
     # Mode for flipping images used in data augmentation during training
@@ -118,7 +120,7 @@ def run_training_pipeline(config_dict):
     # Guardar resultados
     results["configuracion"] = name
     df = pd.json_normalize(results, sep='_')
-    results_path = pathlib.Path(f"{path_dir_model}/resultados_finalesFPN.csv")
+    results_path = pathlib.Path(f"{path_dir_model}/resultados_finalesBig.csv")
     df.to_csv(results_path, mode="a", header=not results_path.exists(), index=False)
     
     torch.cuda.empty_cache()  # Limpiar caché de CUDA

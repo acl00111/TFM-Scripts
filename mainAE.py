@@ -130,17 +130,19 @@ def mutar_hijo(hijo, mutation_rate=0.1):
                     hijo[key] = 'FLAIR'
             elif key == 'modelo':
                 print(f"Mutando {key} del hijo: {hijo[key]}")
-                hijo[key] = random.choice(['mask_rcnn_R_50_FPN_3x.yaml',
-                        'mask_rcnn_R_101_FPN_3x.yaml'])
+                hijo[key] = random.choice(['mask_rcnn_R_101_C4_3x.yaml',
+                        'mask_rcnn_R_50_DC5_3x.yaml',
+                        'mask_rcnn_R_101_DC5_3x.yaml',
+                        'mask_rcnn_X_101_32x8d_FPN_3x.yaml'])
             elif key == 'batch_size':
                 print(f"Mutando {key} del hijo: {hijo[key]}")
-                hijo[key] = random.choice([4, 6, 8])
+                hijo[key] = random.choice([2, 4])
             elif key == 'maxiter':
                 print(f"Mutando {key} del hijo: {hijo[key]}")
                 hijo[key] = random.choice([5000, 10000, 15000]) + 2000
             elif key == 'steps':
                 print(f"Mutando {key} del hijo: {hijo[key]}")
-                hijo[key] = [random.choice([0, 1000, 2500, 5000, 7500])]
+                hijo[key] = [random.choice([1000, 2500, 5000, 7500])]
             else:
                 print(f"Mutando {key} del hijo: {hijo[key]}")
                 hijo[key] = float(hijo[key]) * random.uniform(0.9, 1.1)  # Pequeña variación
@@ -187,7 +189,7 @@ def main():
     tiempo_inicio = time.time()
     print(f"Inicio del script: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tiempo_inicio))}")
     #run_training_pipeline(ind_params)
-    yaml_path = '/home/albacano/TFM-Scripts/extendedConfsFPN.yaml'
+    yaml_path = '/home/albacano/TFM-Scripts/extendedConfsBig.yaml'
     list_of_dicts = readConfs(yaml_path)
 
     # Inicialización Población
