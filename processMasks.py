@@ -30,7 +30,7 @@ def generate_annotation(mask, image_id, annotation_id, category_id=1):
 
     return annotations, annotation_id
 
-def batch_masks_to_single_json(mask_dir, output_json_path):
+def batch_masks_to_single_json(mask_dir, output_json_path, modality='FLAIR'):
     mask_dir = Path(mask_dir)
     mask_files = sorted(mask_dir.glob("*.png"))
 
@@ -58,10 +58,14 @@ def batch_masks_to_single_json(mask_dir, output_json_path):
         mask = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
         height, width = mask.shape
 
+        #print(mask_path.name)
+
+        #print(mask_path.name.replace('MASK', modality))
+
         # Agregar entrada de imagen
         coco_output["images"].append({
             "id": image_id,
-            "file_name": mask_path.name,
+            "file_name": mask_path.name.replace('MASK', modality),
             "width": width,
             "height": height
         })
