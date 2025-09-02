@@ -1,5 +1,3 @@
-import torch
-from torch.utils.data import Subset
 import numpy as np
 import os
 from zipfile import ZipFile
@@ -130,3 +128,38 @@ def process_dataset_new(root_input_flair, root_input_t1, root_input_t2, root_out
        # root_output.mkdir(parents=True, exist_ok=True)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         cv2.imwrite(str(output_path), rgb)
+
+def dataAugmentationRotation(input_dir, output_dir):
+    input_dir = Path(input_dir)
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    for img_path in input_dir.glob("*.png"):
+        img = cv2.imread(str(img_path))
+        if img is None:
+            print(f"Error al cargar {img_path}")
+            continue
+
+        base_name = img_path.stem
+        ext = img_path.suffix
+
+        # Original
+        output_path = output_dir / f"{base_name}_0{ext}"
+        cv2.imwrite(str(output_path), img)
+
+        # 90 degrees
+        rotated_90 = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+        output_path_90 = output_dir / f"{base_name}_1{ext}"
+        cv2.imwrite(str(output_path_90), rotated_90)
+
+        # 180 degrees
+        rotated_180 = cv2.rotate(img, cv2.ROTATE_180)
+        output_path_180 = output_dir / f"{base_name}_2{ext}"
+        cv2.imwrite(str(output_path_180), rotated_180)
+
+        # 270 degrees
+        rotated_270 = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        output_path_270 = output_dir / f"{base_name}_3{ext}"
+        cv2.imwrite(str(output_path_270), rotated_270)
+
+        print(f"Guardado {base_name}_0, {base_name}_1, {base_name}_2, {base_name}_3 en {output_dir}")

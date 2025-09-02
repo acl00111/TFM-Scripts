@@ -39,7 +39,6 @@ def run_training_pipeline(config_dict):
     Ejecuta el entrenamiento y evaluación para una configuración y fold dado.
     `config_dict` debe incluir: modalidad, modelo, flip, batch_size, base_lr, maxiter_steps, etc.
     """
-    # Construir nombre único
     base_path_dir = '/mnt/Data1/MSLesSeg-Dataset'
     path_dir_model = "/home/albacano/TFM-Scripts/Detectron2_models"
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -51,7 +50,6 @@ def run_training_pipeline(config_dict):
     output_dir = os.path.join(path_dir_model, name)
     os.makedirs(output_dir, exist_ok=True)
 
-    # Setup dataset
     train_dataset_name = f"train_{name}"
     val_dataset_name = f"val_{name}"
     train_json = f"{path_dir_train}/annotations.json"
@@ -66,7 +64,6 @@ def run_training_pipeline(config_dict):
     val_metadata = MetadataCatalog.get(val_dataset_name)
     val_dataset_dicts = DatasetCatalog.get(val_dataset_name)
 
-    # Config
     cfg = get_cfg()
     cfg.OUTPUT_DIR = output_dir
     cfg.merge_from_file(model_zoo.get_config_file(f"COCO-InstanceSegmentation/{config_dict['modelo']}"))
