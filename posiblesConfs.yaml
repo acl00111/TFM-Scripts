@@ -1,5 +1,5 @@
 param_space:
-  modalidad:           [FLAIR, RGB]
+  modalidad:           [FLAIR, FLAIR-AUG]
   modelo:              [mask_rcnn_R_50_FPN_3x.yaml,
                         mask_rcnn_R_101_FPN_3x.yaml,
                         mask_rcnn_R_50_C4_3x.yaml, 
@@ -10,6 +10,7 @@ param_space:
   maxiter_steps: 
     - { maxiter: 2000,  steps: [1000] }
     - { maxiter: 5000,  steps: [2500] }
+    - { maxiter: 7000, steps: [3500] }
   base_lr:             [0.001]
   gamma:               [0.5]
   batch_size:          [2, 4]

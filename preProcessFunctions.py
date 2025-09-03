@@ -8,7 +8,7 @@ from zipfile import ZipFile
 import nibabel as nib
 import numpy as np
 from pathlib import Path
-from skimage import io
+#from skimage import io
 from tqdm import tqdm
 import cv2
 

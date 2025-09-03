@@ -189,12 +189,12 @@ def main():
     tiempo_inicio = time.time()
     print(f"Inicio del script: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tiempo_inicio))}")
     #run_training_pipeline(ind_params)
-    yaml_path = '/home/albacano/TFM-Scripts/extendedConfsBig.yaml'
+    yaml_path = '/home/albacano/TFM-Scripts/posiblesConfs.yaml'
     list_of_dicts = readConfs(yaml_path)
 
     # Inicialización Población
     poblacion, usados = inicializar_poblacion(list_of_dicts, size=10)
-    iteraciones = 20
+    iteraciones = 10
     evaluar_poblacion(poblacion, usados)
     for i in range(iteraciones):
         print(f"Iteración {i+1} de {iteraciones}")
