@@ -1,0 +1,18 @@
+param_space:
+  modalidad:           [FLAIR]
+  modelo:              [
+                        mask_rcnn_R_101_FPN_3x.yaml,
+                        mask_rcnn_X_101_32x8d_FPN_3x.yaml,]
+  maxiter_steps: 
+    - { maxiter: 2000,  steps: [1000] }
+    - { maxiter: 5000,  steps: [2500] }
+  base_lr:             [0.001, 0.0001, 0.00025]
+  gamma:               [0.5]
+  batch_size:          [1, 2, 4]
+  roi_batch_size_per_image: [64, 128, 256]
+  roi_positive_fraction: [0.5, 0.7]
+  rpn_fg_iou_thresh:   [0.5, 0.7]
+  rpn_bg_iou_thresh:   [0.3, 0.5]
+  lr_scheduler:      [WarmupMultiStepLR, WarmupCosineLR]
+  flip:                [horizontal, vertical, none]
+  weight_decay:        [0.0001, 0.0005]

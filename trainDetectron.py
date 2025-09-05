@@ -42,7 +42,7 @@ def run_training_pipeline(config_dict):
     base_path_dir = '/mnt/Data1/MSLesSeg-Dataset'
     path_dir_model = "/home/albacano/TFM-Scripts/Detectron2_models"
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    name = f"{config_dict['modelo']}_{config_dict['modalidad']}_{config_dict['maxiter']}_{config_dict['flip']}_{config_dict['batch_size']}_{timestamp}"
+    name = f"{config_dict['modelo']}_{config_dict['modalidad']}_{config_dict['maxiter']}_{config_dict['flip']}_{config_dict['batch_size']}_{config_dict['base_lr']}_{config_dict['roi_batch_size_per_image']}_{config_dict['roi_positive_fraction']}_{config_dict['rpn_fg_iou_thresh']}_{config_dict['rpn_bg_iou_thresh']}_{config_dict['lr_scheduler']}_{config_dict['weight_decay']}_{timestamp}"
 
     path_dir_train = base_path_dir + f"/outputDivided_train{config_dict['modalidad']}"
     path_dir_val = base_path_dir + f"/outputDivided_val{config_dict['modalidad']}"
@@ -75,13 +75,18 @@ def run_training_pipeline(config_dict):
     cfg.SOLVER.MAX_ITER = config_dict['maxiter']
     cfg.SOLVER.IMS_PER_BATCH = config_dict['batch_size']
     cfg.SOLVER.STEPS = config_dict['steps']
-    cfg.INPUT.MIN_SIZE_TRAIN = 364 # Redimensionamiento de las imágenes de entrenamiento
-    cfg.INPUT.MAX_SIZE_TRAIN = 364    
-    cfg.INPUT.MIN_SIZE_TEST  = 364
-    cfg.INPUT.MAX_SIZE_TEST  = 364
+   # cfg.INPUT.MIN_SIZE_TRAIN = 364 # Redimensionamiento de las imágenes de entrenamiento
+   # cfg.INPUT.MAX_SIZE_TRAIN = 364    
+   # cfg.INPUT.MIN_SIZE_TEST  = 364
+   # cfg.INPUT.MAX_SIZE_TEST  = 364
     cfg.SOLVER.GAMMA = config_dict['gamma']
     cfg.SOLVER.WEIGHT_DECAY = config_dict['weight_decay']
-    cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 512
+    cfg.MODEL.ANCHOR_GENERATOR.SIZES =[[8, 16, 32]]  
+    cfg.MODEL.ANCHOR_GENERATOR.ASPECT_RATIOS = [[0.5, 1.0, 2.0]]
+    cfg.MODEL.RPN.IOU_THRESHOLDS = [config_dict['rpn_bg_iou_thresh'], config_dict['rpn_fg_iou_thresh']]
+    cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = config_dict['roi_batch_size_per_image']
+    cfg.MODEL.ROI_HEADS.POSITIVE_FRACTION = config_dict['roi_positive_fraction']
+    cfg.SOLVER.LR_SCHEDULER_NAME = config_dict['lr_scheduler']
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1
     cfg.INPUT.MIN_SIZE_TRAIN_SAMPLING = "choice" 
     # Mode for flipping images used in data augmentation during training
@@ -117,7 +122,7 @@ def run_training_pipeline(config_dict):
     # Guardar resultados
     results["configuracion"] = name
     df = pd.json_normalize(results, sep='_')
-    results_path = pathlib.Path(f"{path_dir_model}/resultados_finalesAUG.csv")
+    results_path = pathlib.Path(f"{path_dir_model}/resultados_finalesExtended.csv")
     df.to_csv(results_path, mode="a", header=not results_path.exists(), index=False)
     
     torch.cuda.empty_cache()  # Limpiar caché de CUDA

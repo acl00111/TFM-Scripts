@@ -54,8 +54,8 @@ def main():
 
         
     config_dict = {
-        'modalidad': 'FLAIR-AUG',
-        'modelo': 'mask_rcnn_R_101_C4_3x.yaml',
+        'modalidad': 'FLAIR',
+        'modelo': 'mask_rcnn_R_50_FPN_3x.yaml',
         'flip': 'vertical',
         'batch_size': 4,
         'gamma': 0.05,

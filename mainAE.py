@@ -16,7 +16,7 @@ def readConfs(yamlPath):
         param_space = yaml.safe_load(f)["param_space"]
 
     keys = ["modalidad", "modelo", "flip", "batch_size", "gamma",
-            "base_lr", "weight_decay", "maxiter_steps"]
+            "base_lr", "weight_decay", "maxiter_steps", "roi_batch_size_per_image", "roi_positive_fraction", "rpn_fg_iou_thresh", "rpn_bg_iou_thresh", "lr_scheduler"]
 
     combinations = list(itertools.product(*(param_space[k] for k in keys)))
 
@@ -131,7 +131,6 @@ def mutar_hijo(hijo, mutation_rate=0.1):
             elif key == 'modelo':
                 print(f"Mutando {key} del hijo: {hijo[key]}")
                 hijo[key] = random.choice(['mask_rcnn_R_101_C4_3x.yaml',
-                        'mask_rcnn_R_50_DC5_3x.yaml',
                         'mask_rcnn_R_101_DC5_3x.yaml',
                         'mask_rcnn_X_101_32x8d_FPN_3x.yaml'])
             elif key == 'batch_size':
@@ -139,10 +138,10 @@ def mutar_hijo(hijo, mutation_rate=0.1):
                 hijo[key] = random.choice([2, 4])
             elif key == 'maxiter':
                 print(f"Mutando {key} del hijo: {hijo[key]}")
-                hijo[key] = random.choice([5000, 10000, 15000]) + 2000
+                hijo[key] = hijo[key] + random.choice([-1000, 1000])
             elif key == 'steps':
                 print(f"Mutando {key} del hijo: {hijo[key]}")
-                hijo[key] = [random.choice([1000, 2500, 5000, 7500])]
+                hijo[key] = hijo['maxiter'] * [random.choice([0.25, 0.75])]
             else:
                 print(f"Mutando {key} del hijo: {hijo[key]}")
                 hijo[key] = float(hijo[key]) * random.uniform(0.9, 1.1)  # Pequeña variación
@@ -189,11 +188,11 @@ def main():
     tiempo_inicio = time.time()
     print(f"Inicio del script: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tiempo_inicio))}")
     #run_training_pipeline(ind_params)
-    yaml_path = '/home/albacano/TFM-Scripts/posiblesConfs.yaml'
+    yaml_path = '/home/albacano/TFM-Scripts/posiblesConfsExtended.yaml'
     list_of_dicts = readConfs(yaml_path)
 
     # Inicialización Población
-    poblacion, usados = inicializar_poblacion(list_of_dicts, size=10)
+    poblacion, usados = inicializar_poblacion(list_of_dicts, size=15)
     iteraciones = 10
     evaluar_poblacion(poblacion, usados)
     for i in range(iteraciones):
