@@ -93,6 +93,7 @@ def run_training_pipeline(config_dict):
     # choose one of ["horizontal, "vertical", "none"]
     cfg.INPUT.RANDOM_FLIP = config_dict['flip']
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7
+    cfg.SOLVER.CHECKPOINT_PERIOD = 10000
 
     # Entrenamiento
     trainer = DefaultTrainer(cfg)

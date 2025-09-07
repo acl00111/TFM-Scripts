@@ -142,9 +142,30 @@ def mutar_hijo(hijo, mutation_rate=0.1):
             elif key == 'steps':
                 print(f"Mutando {key} del hijo: {hijo[key]}")
                 hijo[key] = hijo['maxiter'] * [random.choice([0.25, 0.75])]
-            else:
+            elif key == 'base_lr':
                 print(f"Mutando {key} del hijo: {hijo[key]}")
-                hijo[key] = float(hijo[key]) * random.uniform(0.9, 1.1)  # Pequeña variación
+                hijo[key] = random.choice([0.0001, 0.00025, 0.001])
+            elif key == 'gamma':
+                print(f"Mutando {key} del hijo: {hijo[key]}")
+                hijo[key] = random.choice([0.1, 0.5])
+            elif key == 'weight_decay':
+                print(f"Mutando {key} del hijo: {hijo[key]}")
+                hijo[key] = random.choice([0.0001, 0.0005])
+            elif key == 'roi_batch_size_per_image':
+                print(f"Mutando {key} del hijo: {hijo[key]}")
+                hijo[key] = random.choice([64, 128, 256])
+            elif key == 'roi_positive_fraction':
+                print(f"Mutando {key} del hijo: {hijo[key]}")
+                hijo[key] = random.choice([0.3, 0.5, 0.7])
+            elif key == 'rpn_fg_iou_thresh':
+                print(f"Mutando {key} del hijo: {hijo[key]}")
+                hijo[key] = random.choice([0.5, 0.7])
+            elif key == 'rpn_bg_iou_thresh':
+                print(f"Mutando {key} del hijo: {hijo[key]}")
+                hijo[key] = random.choice([0.3, 0.5])
+            elif key == 'lr_scheduler':
+                print(f"Mutando {key} del hijo: {hijo[key]}")
+                hijo[key] = random.choice(['WarmupMultiStepLR', 'WarmupCosineLR'])
     print(f"Hijo mutado: {hijo}")
 
 def reemplazar_individuo(poblacion, hijo, num_reemplazables=5):
