@@ -62,7 +62,12 @@ def main():
         'base_lr': 0.001,
         'weight_decay': 0.0001,
         'maxiter': 5000,
-        'steps': [2500]
+        'steps': [2000],
+        'roi_batch_size_per_image': 256,
+        'roi_positive_fraction': 0.7,
+        'rpn_fg_iou_thresh': 0.5,
+        'rpn_bg_iou_thresh': 0.5,
+        'lr_scheduler': 'WarmupMultiStepLR'
     } 
 
     # Ejecutar el pipeline de entrenamiento
