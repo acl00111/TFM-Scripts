@@ -39,13 +39,13 @@ def run_training_pipeline(config_dict):
     Ejecuta el entrenamiento y evaluación para una configuración y fold dado.
     `config_dict` debe incluir: modalidad, modelo, flip, batch_size, base_lr, maxiter_steps, etc.
     """
-    base_path_dir = '/mnt/Data1/MSLesSeg-Dataset'
+    base_path_dir = '/mnt/Data1/MSLesSeg-Dataset/5kfold_FLAIR' + f"/{config_dict['modalidad']}"
     path_dir_model = "/home/albacano/TFM-Scripts/Detectron2_models"
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    name = f"{config_dict['modelo']}_{config_dict['modalidad']}_{config_dict['maxiter']}_{config_dict['flip']}_{config_dict['batch_size']}_{config_dict['base_lr']}_{config_dict['weight_decay']}_{timestamp}"
+    name = f"{config_dict['modelo']}_{config_dict['modalidad']}_{config_dict['maxiter']}_{config_dict['flip']}_{config_dict['batch_size']}_{config_dict['base_lr']}_{config_dict['weight_decay']}_{config_dict['roi_batch_size_per_image']}_{config_dict['roi_positive_fraction']}_{config_dict['rpn_fg_iou_thresh']}_{config_dict['rpn_bg_iou_thresh']}_{config_dict['lr_scheduler']}_{timestamp}"
 
-    path_dir_train = base_path_dir + f"/outputDivided_train{config_dict['modalidad']}"
-    path_dir_val = base_path_dir + f"/outputDivided_val{config_dict['modalidad']}"
+    path_dir_train = base_path_dir + f"/trainImages"
+    path_dir_val = base_path_dir + f"/valImages"
 
     output_dir = os.path.join(path_dir_model, name)
     os.makedirs(output_dir, exist_ok=True)
@@ -88,6 +88,11 @@ def run_training_pipeline(config_dict):
     # choose one of ["horizontal, "vertical", "none"]
     cfg.INPUT.RANDOM_FLIP = config_dict['flip']
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7
+    cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = config_dict['roi_batch_size_per_image']
+    cfg.MODEL.ROI_HEADS.POSITIVE_FRACTION = config_dict['roi_positive_fraction']
+    cfg.MODEL.RPN.FG_IOU_THRESH = config_dict['rpn_fg_iou_thresh']
+    cfg.MODEL.RPN.BG_IOU_THRESH = config_dict['rpn_bg_iou_thresh']
+    cfg.SOLVER.LR_SCHEDULER_NAME = config_dict['lr_scheduler']
 
     # Entrenamiento
     trainer = DefaultTrainer(cfg)
@@ -101,7 +106,7 @@ def run_training_pipeline(config_dict):
     predictor = DefaultPredictor(cfg)
 
     # Evaluación
-    inference(predictor, val_dataset_dicts, val_metadata, f"{base_path_dir}/output_maskDivided_val{config_dict['modalidad']}", f"{output_dir}/output_images")
+    inference(predictor, val_dataset_dicts, val_metadata, f"{base_path_dir}/valMasks", f"{output_dir}/output_images")
     val_loader = build_detection_test_loader(cfg, val_dataset_name)
     coco_eval = COCOEvaluator(val_dataset_name, output_dir=os.path.join(output_dir, "eval"))
     results = inference_on_dataset(predictor.model, val_loader, coco_eval)
@@ -109,7 +114,7 @@ def run_training_pipeline(config_dict):
     # Máscaras y métricas externas
     save_predicted_masks(predictor, DatasetCatalog.get(val_dataset_name), os.path.join(output_dir, "predicted_masks"))
     f1_metrics = evaluate_binary_masks(
-        f"{base_path_dir}/output_maskDivided_val{config_dict['modalidad']}", 
+        f"{base_path_dir}/valMasks", 
         f"{output_dir}/predicted_masks"
     )
     results.update(f1_metrics)
@@ -117,7 +122,7 @@ def run_training_pipeline(config_dict):
     # Guardar resultados
     results["configuracion"] = name
     df = pd.json_normalize(results, sep='_')
-    results_path = pathlib.Path(f"{path_dir_model}/resultados_finalesBig.csv")
+    results_path = pathlib.Path(f"{path_dir_model}/resultados_finalesKCV.csv")
     df.to_csv(results_path, mode="a", header=not results_path.exists(), index=False)
     
     torch.cuda.empty_cache()  # Limpiar caché de CUDA
