@@ -42,7 +42,7 @@ def run_training_pipeline(config_dict):
     base_path_dir = '/mnt/Data1/MSLesSeg-Dataset'
     path_dir_model = "/home/albacano/TFM-Scripts/Detectron2_models"
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    name = f"{config_dict['modelo']}_{config_dict['modalidad']}_{config_dict['maxiter']}_{config_dict['flip']}_{config_dict['batch_size']}_{timestamp}"
+    name = f"{config_dict['modelo']}_{config_dict['modalidad']}_{config_dict['maxiter']}_{config_dict['flip']}_{config_dict['batch_size']}_{config_dict['base_lr']}_{config_dict['weight_decay']}_{timestamp}"
 
     path_dir_train = base_path_dir + f"/outputDivided_train{config_dict['modalidad']}"
     path_dir_val = base_path_dir + f"/outputDivided_val{config_dict['modalidad']}"
@@ -117,7 +117,7 @@ def run_training_pipeline(config_dict):
     # Guardar resultados
     results["configuracion"] = name
     df = pd.json_normalize(results, sep='_')
-    results_path = pathlib.Path(f"{path_dir_model}/resultados_finalesAUG.csv")
+    results_path = pathlib.Path(f"{path_dir_model}/resultados_finalesBig.csv")
     df.to_csv(results_path, mode="a", header=not results_path.exists(), index=False)
     
     torch.cuda.empty_cache()  # Limpiar caché de CUDA

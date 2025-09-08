@@ -1,15 +1,16 @@
 param_space:
-  modalidad:           [FLAIR, FLAIR-AUG]
+  modalidad:           [FLAIR]
   modelo:              [mask_rcnn_R_101_C4_3x.yaml,
                         mask_rcnn_R_50_DC5_3x.yaml,
                         mask_rcnn_R_101_DC5_3x.yaml,
                         mask_rcnn_X_101_32x8d_FPN_3x.yaml,]
   maxiter_steps: 
+    - { maxiter: 2000,  steps: [1000] }
+    - { maxiter: 4000,  steps: [2000] } 
     - { maxiter: 5000,  steps: [2500] }
-    - { maxiter: 7000, steps: [3500] }
-    - { maxiter: 10000, steps: [5000] }
-  base_lr:             [0.001]
+    - { maxiter: 6000, steps: [3000] }
+  base_lr:             [0.001, 0.0001, 0.00025]
   gamma:               [0.5]
-  batch_size:          [2, 4]
+  batch_size:          [1, 2, 4]
   flip:                [horizontal, vertical, none]
-  weight_decay:        [0.0001]
+  weight_decay:        [0.0001, 0.0005]

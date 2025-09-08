@@ -189,7 +189,7 @@ def main():
     tiempo_inicio = time.time()
     print(f"Inicio del script: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tiempo_inicio))}")
     #run_training_pipeline(ind_params)
-    yaml_path = '/home/albacano/TFM-Scripts/posiblesConfs.yaml'
+    yaml_path = '/home/albacano/TFM-Scripts/extendedConfsBig.yaml'
     list_of_dicts = readConfs(yaml_path)
 
     # Inicialización Población
