@@ -9,7 +9,7 @@ from detectron2.structures import Instances
 
 def inference(predictor, val_dataset_dicts, val_metadata, val_mask_dir, output_dir):
     os.makedirs(output_dir, exist_ok=True)
-    for d in random.sample(val_dataset_dicts, 5):  # prueba con una imagen
+    for d in val_dataset_dicts:  # prueba con una imagen
         file_name = d["file_name"]
         im = cv2.imread(file_name)
 
